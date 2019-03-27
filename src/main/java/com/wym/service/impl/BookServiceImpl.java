@@ -217,7 +217,7 @@ public class BookServiceImpl implements BookService {
                         resCommentList.add(resComment);
                     });
                 }
-                if (!Objects.isNull(tuple.getT1())){
+                if (!StringUtils.isEmpty(tuple.getT1().getBookid())){
                     resBookDetail.setAuthor(tuple.getT1().getAuthor());
                     resBookDetail.setAvatar(tuple.getT1().getAvatar());
                     resBookDetail.setBookname(tuple.getT1().getBookname());
@@ -302,7 +302,8 @@ public class BookServiceImpl implements BookService {
             Mono<BookDetail> bookDetailMono = selectBookDetail(bookId);
             return bookDetailMono.flatMap(bookDetail -> {
                 String fileName = staticConfig.getFilePath() + File.separator + bookDetail.getAvatar();
-                if (bookDetailMapper.deleteByPrimaryKey(bookId) > 0 && deleteAvatar(fileName)){
+                if (bookDetailMapper.deleteByPrimaryKey(bookId) > 0 && deleteAvatar(fileName)
+                                                         && commentMapper.deleteByBookId(bookId) > 0){
                     return Mono.just(ApiResult.getApiResult(200, "del book successfully"));
                 }
                 return Mono.just(ApiResult.getApiResult(-1, "del book failly"));
