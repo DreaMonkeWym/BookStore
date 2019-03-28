@@ -9,6 +9,8 @@ import lombok.Data;
 @Data
 public class CartDetail {
 
+    String cartId;
+    String bookId;
     String bookName;
     String bookAvatar;
     String bookPrice;
