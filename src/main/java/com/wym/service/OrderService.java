@@ -19,5 +19,17 @@ public interface OrderService {
      */
     Mono<ApiResult<Object>> addCart(String username, String bookId);
 
+    /**
+     * 查询购物车
+     * @param username
+     * @return
+     */
     Mono<ApiResult<? extends List<CartDetail>>> queryCart(String username);
+
+    /**
+     * 购物车中删除商品
+     * @param cartid
+     * @return
+     */
+    Mono<ApiResult<Object>> delCartBook(String cartid);
 }

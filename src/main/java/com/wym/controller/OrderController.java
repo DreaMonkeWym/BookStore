@@ -35,9 +35,25 @@ public class OrderController {
         return orderService.addCart(username, bookId);
     }
 
+    /**
+     * 查询购物车商品信息
+     * @param username
+     * @return
+     */
     @GetMapping("/querycart")
     public Mono<ApiResult<? extends List<CartDetail>>> queryCart(@RequestParam String username){
         log.info("addCart ~ usernmae = {}", username);
         return orderService.queryCart(username);
+    }
+
+    /**
+     * 购物车中删除商品
+     * @param cartId
+     * @return
+     */
+    @DeleteMapping("delcartbook")
+    public Mono<ApiResult<Object>> delCartBook(@RequestParam String cartId){
+        log.info("delCartBook ~ cartId = {}", cartId);
+        return orderService.delCartBook(cartId);
     }
 }
