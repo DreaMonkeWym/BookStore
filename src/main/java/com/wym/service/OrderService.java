@@ -32,4 +32,12 @@ public interface OrderService {
      * @return
      */
     Mono<ApiResult<Object>> delCartBook(String cartid);
+
+    /**
+     * 更改购物车商品数量
+     * @param cartid
+     * @param quantity
+     * @return
+     */
+    Mono<ApiResult<Object>> updateCartBook(String cartid, String quantity);
 }

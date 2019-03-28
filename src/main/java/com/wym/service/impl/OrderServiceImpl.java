@@ -60,6 +60,7 @@ public class OrderServiceImpl implements OrderService {
                     }
                 }else {
                     String quantity = new BigInteger(carts.getQuantity()).add(new BigInteger("1")).toString();
+                    // 是否超过图书总数 待实现
                     if (cartMapper.updateQuantity(carts.getCartid(), quantity) > 0){
                         return Mono.just(ApiResult.getApiResult(200, "Book add cart successfully "));
                     }
@@ -109,4 +110,28 @@ public class OrderServiceImpl implements OrderService {
                 log.error("delCartBook is error!~~ cartId = {}", cartid, t))
                 .onErrorReturn(ApiResult.getApiResult(-1, "del the book failly"));
     }
+
+    @Override
+    public Mono<ApiResult<Object>> updateCartBook(String cartid, String quantity) {
+        return Mono.fromSupplier(() -> {
+            // 是否超过图书总数 待实现
+            if (cartMapper.updateQuantity(cartid, quantity) > 0){
+                return ApiResult.getApiResult(200, "update the book successfully");
+            }
+            return ApiResult.getApiResult(-1, "update the book failly");
+        }).publishOn(Schedulers.elastic()).doOnError(t ->
+                log.error("updateCartBook is error!~~ cartId = {}, quantity = {}", cartid, quantity, t))
+                .onErrorReturn(ApiResult.getApiResult(-1, "update the book failly"));
+    }
+
+//    public Mono<ApiResult<Object>> delCartList(List<String> list){
+//        return Mono.fromSupplier(() -> {
+//            list.forEach(l -> {
+//                delCartBook(l);
+//            });
+//            return ApiResult.getApiResult(200, "del the book successfully");
+//        }).publishOn(Schedulers.elastic()).doOnError(t ->
+//                log.error("delCartBook is error!~~ list = {}", list, t))
+//                .onErrorReturn(ApiResult.getApiResult(-1, "del the book failly"));
+//    }
 }

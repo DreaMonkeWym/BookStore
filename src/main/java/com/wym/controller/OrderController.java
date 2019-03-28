@@ -56,4 +56,16 @@ public class OrderController {
         log.info("delCartBook ~ cartId = {}", cartId);
         return orderService.delCartBook(cartId);
     }
+
+    /**
+     * 更改购物车商品数量
+     * @param cartId
+     * @param quantity
+     * @return
+     */
+    @PutMapping("updatecartbook")
+    public Mono<ApiResult<Object>> updateCartBook(@RequestParam String cartId, @RequestParam String quantity){
+        log.info("updateCartBook ~ cartId = {}, quantity = {}", cartId, quantity);
+        return orderService.updateCartBook(cartId, quantity);
+    }
 }
