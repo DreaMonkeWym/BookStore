@@ -223,6 +223,7 @@ public class BookServiceImpl implements BookService {
                     resBookDetail.setBookname(tuple.getT1().getBookname());
                     resBookDetail.setDescri(tuple.getT1().getDescri());
                     resBookDetail.setPrice(tuple.getT1().getPrice());
+                    resBookDetail.setQuantity(tuple.getT1().getQuantity());
                     resBookDetail.setPublicationtime(tuple.getT1().getPublicationtime());
                     String glance = new BigInteger(tuple.getT1().getGlance()).add(new BigInteger("1")).toString();
                     if (bookDetailMapper.updateGlance(bookId, glance) > 0){

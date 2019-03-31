@@ -18,6 +18,7 @@ public class ResBookDetail {
     private String author;
     private String glance;
     private String bookname;
+    private String quantity;
     private List<ResComment> commentList;
 
 }

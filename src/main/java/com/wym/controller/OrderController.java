@@ -47,7 +47,7 @@ public class OrderController {
     }
 
     /**
-     * 购物车中删除商品
+     * 购物车中删除单个商品
      * @param cartId
      * @return
      */
@@ -57,6 +57,16 @@ public class OrderController {
         return orderService.delCartBook(cartId);
     }
 
+    /**
+     * 购物车中删除多个商品
+     * @param cartidList
+     * @return
+     */
+    @DeleteMapping("delcartlist")
+    public Mono<ApiResult<Object>> delCartList(@RequestParam List<String> cartidList){
+        log.info("delCartList ~ cartidList = {}",cartidList);
+        return orderService.delCartList(cartidList);
+    }
     /**
      * 更改购物车商品数量
      * @param cartId

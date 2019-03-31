@@ -15,5 +15,5 @@ public class CartDetail {
     String bookAvatar;
     String bookPrice;
     String bookQuantity;
-    String bookAmount;
+    String quantity;
 }

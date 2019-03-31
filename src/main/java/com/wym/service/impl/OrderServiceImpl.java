@@ -87,8 +87,9 @@ public class OrderServiceImpl implements OrderService {
                     cartDetail.setBookAvatar(bookDetail.getAvatar());
                     cartDetail.setBookPrice(bookDetail.getPrice());
                     cartDetail.setBookQuantity(cart.getQuantity());
-                    String amount = new BigDecimal(cartDetail.getBookPrice()).multiply(new BigDecimal(cartDetail.getBookQuantity())).toEngineeringString();
-                    cartDetail.setBookAmount(String.valueOf(amount));
+                    cartDetail.setQuantity(bookDetail.getQuantity());
+//                    String amount = new BigDecimal(cartDetail.getBookPrice()).multiply(new BigDecimal(cartDetail.getBookQuantity())).toEngineeringString();
+//                    cartDetail.setBookAmount(String.valueOf(amount));
                     cartDetailList.add(cartDetail);
                 });
                 return ApiResult.getApiResult(cartDetailList);
@@ -124,14 +125,13 @@ public class OrderServiceImpl implements OrderService {
                 .onErrorReturn(ApiResult.getApiResult(-1, "update the book failly"));
     }
 
-//    public Mono<ApiResult<Object>> delCartList(List<String> list){
-//        return Mono.fromSupplier(() -> {
-//            list.forEach(l -> {
-//                delCartBook(l);
-//            });
-//            return ApiResult.getApiResult(200, "del the book successfully");
-//        }).publishOn(Schedulers.elastic()).doOnError(t ->
-//                log.error("delCartBook is error!~~ list = {}", list, t))
-//                .onErrorReturn(ApiResult.getApiResult(-1, "del the book failly"));
-//    }
+    @Override
+    public Mono<ApiResult<Object>> delCartList(List<String> cartidList){
+        return Mono.fromSupplier(() -> {
+            cartidList.forEach(cartid -> cartMapper.deleteByPrimaryKey(cartid));
+            return ApiResult.getApiResult(200, "del books successfully");
+        }).publishOn(Schedulers.elastic()).doOnError(t ->
+                log.error("delCartList is error!~~ cartidList = {}", cartidList, t))
+                .onErrorReturn(ApiResult.getApiResult(-1, "del books failly"));
+    }
 }
