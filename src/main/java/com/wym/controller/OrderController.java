@@ -91,6 +91,11 @@ public class OrderController {
         return orderService.updateCartList(cartDetailList);
     }
 
+    /**
+     *购物车提交订单
+     * @param commitCart
+     * @return
+     */
     @PostMapping("/commitcartlist")
     public Mono<ApiResult<Object>> commitCartList(@RequestBody CommitCart commitCart) {
         log.info("commitCartList ~ commitCart = {}", commitCart);

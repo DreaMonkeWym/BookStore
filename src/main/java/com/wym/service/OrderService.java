@@ -55,6 +55,12 @@ public interface OrderService {
      */
     Mono<ApiResult<Object>> updateCartList(List<CartDetail> cartDetailList);
 
+    /**
+     * 购物车提交订单
+     * @param cartDetailList
+     * @param username
+     * @return
+     */
     Mono<ApiResult<Object>> commitCartList(List<CartDetail> cartDetailList, String username);
 
 }
