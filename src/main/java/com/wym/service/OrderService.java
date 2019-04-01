@@ -63,4 +63,17 @@ public interface OrderService {
      */
     Mono<ApiResult<Object>> commitCartList(List<CartDetail> cartDetailList, String username);
 
+    /**
+     * 删除单个订单
+     * @param orderId
+     * @return
+     */
+    Mono<ApiResult<Object>> delOrder(String orderId);
+
+    /**
+     * 删除多个订单
+     * @param orderIdList
+     * @return
+     */
+    Mono<ApiResult<Object>> delOrderList(List<String> orderIdList);
 }

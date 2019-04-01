@@ -173,4 +173,26 @@ public class OrderServiceImpl implements OrderService {
                 log.error("commitCartList is error!~~ cartDetailList = {}, username = {}", cartDetailList, username, t))
                 .onErrorReturn(ApiResult.getApiResult(-1, "commit cart failly"));
     }
+
+    @Override
+    public Mono<ApiResult<Object>> delOrder(String orderId) {
+        return Mono.fromSupplier(() -> {
+            if (ordersMapper.deleteOrder(orderId) > 0){
+                return ApiResult.getApiResult(200, "del the order successfully");
+            }
+            return ApiResult.getApiResult(-1, "del the order failly");
+        }).publishOn(Schedulers.elastic()).doOnError(t ->
+                log.error("delOrder is error!~~ orderId = {}", orderId, t))
+                .onErrorReturn(ApiResult.getApiResult(-1, "del the order failly"));
+    }
+
+    @Override
+    public Mono<ApiResult<Object>> delOrderList(List<String> orderIdList) {
+        return Mono.fromSupplier(() -> {
+            orderIdList.forEach(orderId -> ordersMapper.deleteOrder(orderId));
+            return ApiResult.getApiResult(200, "del the orders successfully");
+        }).publishOn(Schedulers.elastic()).doOnError(t ->
+                log.error("delOrder is error!~~ orderIdList = {}", orderIdList, t))
+                .onErrorReturn(ApiResult.getApiResult(-1, "del the orders failly"));
+    }
 }

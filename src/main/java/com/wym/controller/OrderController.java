@@ -102,4 +102,25 @@ public class OrderController {
         return orderService.commitCartList(commitCart.getCartDetailList(), commitCart.getUsername());
     }
 
+    /**
+     * 删除单个订单
+     * @param orderId
+     * @return
+     */
+    @DeleteMapping("/delorder")
+    public Mono<ApiResult<Object>> delOrder(@RequestParam String orderId){
+        log.info("delOrder ~ orderId = {}", orderId);
+        return orderService.delOrder(orderId);
+    }
+
+    /**
+     * 删除多个订单
+     * @param orderIdList
+     * @return
+     */
+    @DeleteMapping("/delorderlist")
+    public Mono<ApiResult<Object>> delOrderList(@RequestParam List<String> orderIdList){
+        log.info("delOrderList ~ orderIdList = {}", orderIdList);
+        return orderService.delOrderList(orderIdList);
+    }
 }
