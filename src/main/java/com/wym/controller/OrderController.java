@@ -1,6 +1,7 @@
 package com.wym.controller;
 
 import com.wym.model.po.CartDetail;
+import com.wym.model.po.CommitCart;
 import com.wym.service.OrderService;
 import com.wym.utils.ApiResult;
 import lombok.extern.slf4j.Slf4j;
@@ -89,4 +90,11 @@ public class OrderController {
         log.info("updateCartList ~cartDetailList = {}", cartDetailList);
         return orderService.updateCartList(cartDetailList);
     }
+
+    @PostMapping("/commitcartlist")
+    public Mono<ApiResult<Object>> commitCartList(@RequestBody CommitCart commitCart) {
+        log.info("commitCartList ~ commitCart = {}", commitCart);
+        return orderService.commitCartList(commitCart.getCartDetailList(), commitCart.getUsername());
+    }
+
 }

@@ -2,14 +2,17 @@ package com.wym.service.impl;
 
 import com.wym.mapper.BookDetailMapper;
 import com.wym.mapper.CartMapper;
+import com.wym.mapper.OrdersMapper;
 import com.wym.model.BookDetail;
 import com.wym.model.Cart;
+import com.wym.model.Orders;
 import com.wym.model.po.CartDetail;
 import com.wym.service.OrderService;
 import com.wym.utils.ApiResult;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.RequestParam;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
@@ -31,6 +34,8 @@ public class OrderServiceImpl implements OrderService {
     private CartMapper cartMapper;
     @Resource
     private BookDetailMapper bookDetailMapper;
+    @Resource
+    private OrdersMapper ordersMapper;
 
     private Mono<Cart> selectBookExist(String username, String bookId){
         return Mono.fromSupplier(() -> {
@@ -145,5 +150,27 @@ public class OrderServiceImpl implements OrderService {
         }).publishOn(Schedulers.elastic()).doOnError(t ->
                 log.error("updateCartList is error!~~ cartDetailList = {}", cartDetailList, t))
                 .onErrorReturn(ApiResult.getApiResult(-1, "updateCartList failly"));
+    }
+
+    @Override
+    public Mono<ApiResult<Object>> commitCartList(List<CartDetail> cartDetailList, String username) {
+        return Mono.fromSupplier(() -> {
+            String orderid = System.currentTimeMillis() + username;
+            cartDetailList.forEach(cartDetail -> {
+                BookDetail bookDetail = bookDetailMapper.selectByPrimaryKey(cartDetail.getBookId());
+                String quantity = new BigInteger(bookDetail.getQuantity()).subtract(new BigInteger(cartDetail.getBookQuantity())).toString();
+                Orders orders = new Orders();
+                orders.setOrderid(orderid);
+                orders.setUsername(username);
+                orders.setCartid(cartDetail.getCartId());
+                if (ordersMapper.insert(orders) > 0){
+                    bookDetailMapper.updateQuantity(bookDetail.getBookid(), quantity);
+                    cartMapper.updatePayment(cartDetail.getCartId(), true);
+                }
+            });
+            return ApiResult.getApiResult(200, "commit cart successfully ");
+        }).publishOn(Schedulers.elastic()).doOnError(t ->
+                log.error("commitCartList is error!~~ cartDetailList = {}, username = {}", cartDetailList, username, t))
+                .onErrorReturn(ApiResult.getApiResult(-1, "commit cart failly"));
     }
 }

@@ -284,4 +284,11 @@ public interface BookDetailMapper {
             "where bookid = #{bookid,jdbcType=VARCHAR}"
     })
     int updateBook(String bookid, String price, String quantity);
+
+    @Update({
+            "update bookdetail",
+            "set quantity = #{quantity,jdbcType=VARCHAR}",
+            "where bookid = #{bookid,jdbcType=VARCHAR}"
+    })
+    int updateQuantity(String bookid, String quantity);
 }

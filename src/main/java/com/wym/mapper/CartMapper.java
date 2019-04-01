@@ -128,7 +128,7 @@ public interface CartMapper {
             "select",
             "cartid, username, bookid, quantity",
             "from cart",
-            "where username = #{username,jdbcType=VARCHAR} and payment = #{payment,jdbcType=BIT}"
+            "where username = #{username,jdbcType=VARCHAR} and payment = #{payment,jdbcType=BIT} ORDER BY cartid desc"
     })
     @Results({
             @Result(column="cartid", property="cartid", jdbcType=JdbcType.VARCHAR, id=true),
@@ -186,4 +186,11 @@ public interface CartMapper {
             "where cartid = #{cartid,jdbcType=VARCHAR}"
     })
     int updateQuantity(String cartid, String quantity);
+
+    @Update({
+            "update cart",
+            "set payment = #{payment,jdbcType=BIT}",
+            "where cartid = #{cartid,jdbcType=VARCHAR}"
+    })
+    int updatePayment(String cartid, Boolean payment);
 }
