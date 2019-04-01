@@ -157,13 +157,13 @@ public class OrderServiceImpl implements OrderService {
         return Mono.fromSupplier(() -> {
             String orderid = System.currentTimeMillis() + username;
             cartDetailList.forEach(cartDetail -> {
-                BookDetail bookDetail = bookDetailMapper.selectByPrimaryKey(cartDetail.getBookId());
-                String quantity = new BigInteger(bookDetail.getQuantity()).subtract(new BigInteger(cartDetail.getBookQuantity())).toString();
                 Orders orders = new Orders();
                 orders.setOrderid(orderid);
                 orders.setUsername(username);
                 orders.setCartid(cartDetail.getCartId());
                 if (ordersMapper.insert(orders) > 0){
+                    BookDetail bookDetail = bookDetailMapper.selectByPrimaryKey(cartDetail.getBookId());
+                    String quantity = new BigInteger(bookDetail.getQuantity()).subtract(new BigInteger(cartDetail.getBookQuantity())).toString();
                     bookDetailMapper.updateQuantity(bookDetail.getBookid(), quantity);
                     cartMapper.updatePayment(cartDetail.getCartId(), true);
                 }
