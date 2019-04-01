@@ -3,6 +3,7 @@ package com.wym.model.po;
 import com.wym.model.BookDetail;
 import lombok.Data;
 
+import java.io.Serializable;
 import java.util.List;
 
 /**
@@ -10,7 +11,7 @@ import java.util.List;
  */
 
 @Data
-public class AdminQuery {
+public class AdminQuery implements Serializable {
 
     String typeName;
     List<AdminBook> adminBookList;

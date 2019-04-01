@@ -47,4 +47,12 @@ public interface OrderService {
      * @return
      */
     Mono<ApiResult<Object>> updateCartBook(String cartid, String quantity);
+
+    /**
+     * 更改购物车商品数量List
+     * @param cartDetailList
+     * @return
+     */
+    Mono<ApiResult<Object>> updateCartList(List<CartDetail> cartDetailList);
+
 }

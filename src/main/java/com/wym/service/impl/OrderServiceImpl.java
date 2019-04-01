@@ -134,4 +134,16 @@ public class OrderServiceImpl implements OrderService {
                 log.error("delCartList is error!~~ cartidList = {}", cartidList, t))
                 .onErrorReturn(ApiResult.getApiResult(-1, "del books failly"));
     }
+
+    @Override
+    public Mono<ApiResult<Object>> updateCartList(List<CartDetail> cartDetailList) {
+        return Mono.fromSupplier(() -> {
+            cartDetailList.forEach(cartDetail ->
+                    cartMapper.updateQuantity(cartDetail.getCartId(),cartDetail.getBookQuantity())
+            );
+            return ApiResult.getApiResult(200, "updateCartList successfully");
+        }).publishOn(Schedulers.elastic()).doOnError(t ->
+                log.error("updateCartList is error!~~ cartDetailList = {}", cartDetailList, t))
+                .onErrorReturn(ApiResult.getApiResult(-1, "updateCartList failly"));
+    }
 }

@@ -2,8 +2,10 @@ package com.wym.model;
 
 import lombok.Data;
 
+import java.io.Serializable;
+
 @Data
-public class BookDetail {
+public class BookDetail implements Serializable {
 
     private String bookid;
     private String typeid;

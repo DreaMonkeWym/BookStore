@@ -78,4 +78,15 @@ public class OrderController {
         log.info("updateCartBook ~ cartId = {}, quantity = {}", cartId, quantity);
         return orderService.updateCartBook(cartId, quantity);
     }
+
+    /**
+     * 更改购物车商品数量List
+     * @param cartDetailList
+     * @return
+     */
+    @PutMapping("/updatecartlist")
+    public Mono<ApiResult<Object>> updateCartList(@RequestBody List<CartDetail> cartDetailList) {
+        log.info("updateCartList ~cartDetailList = {}", cartDetailList);
+        return orderService.updateCartList(cartDetailList);
+    }
 }

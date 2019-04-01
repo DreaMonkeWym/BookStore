@@ -2,8 +2,10 @@ package com.wym.model;
 
 import lombok.Data;
 
+import java.io.Serializable;
+
 @Data
-public class Cart {
+public class Cart implements Serializable {
 
     private String cartid;
     private String username;
