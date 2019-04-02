@@ -2,6 +2,7 @@ package com.wym.controller;
 
 import com.wym.model.po.CartDetail;
 import com.wym.model.po.CommitCart;
+import com.wym.model.po.ResOrder;
 import com.wym.service.OrderService;
 import com.wym.utils.ApiResult;
 import lombok.extern.slf4j.Slf4j;
@@ -43,7 +44,7 @@ public class OrderController {
      */
     @GetMapping("/querycart")
     public Mono<ApiResult<? extends List<CartDetail>>> queryCart(@RequestParam String username){
-        log.info("addCart ~ usernmae = {}", username);
+        log.info("queryCart ~ username = {}", username);
         return orderService.queryCart(username);
     }
 
@@ -122,5 +123,27 @@ public class OrderController {
     public Mono<ApiResult<Object>> delOrderList(@RequestParam List<String> orderIdList){
         log.info("delOrderList ~ orderIdList = {}", orderIdList);
         return orderService.delOrderList(orderIdList);
+    }
+
+    /**
+     * 根据订单号查询
+     * @param orderId
+     * @return
+     */
+    @GetMapping("/querybyid")
+    public Mono<ApiResult<ResOrder>> queryById(String orderId){
+        log.info("queryById ~ orderId = {}", orderId);
+        return orderService.queryById(orderId);
+    }
+
+    /**
+     * 根据姓名查询订单
+     * @param username
+     * @return
+     */
+    @GetMapping("/querybyname")
+    public Mono<ApiResult<? extends List>> queryByName(String username) {
+        log.info("queryByName ~ username = {}", username);
+        return orderService.queryByName(username);
     }
 }

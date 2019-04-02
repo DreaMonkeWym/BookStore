@@ -1,6 +1,7 @@
 package com.wym.service;
 
 import com.wym.model.po.CartDetail;
+import com.wym.model.po.ResOrder;
 import com.wym.utils.ApiResult;
 import reactor.core.publisher.Mono;
 
@@ -76,4 +77,18 @@ public interface OrderService {
      * @return
      */
     Mono<ApiResult<Object>> delOrderList(List<String> orderIdList);
+
+    /**
+     * 根据订单号查询
+     * @param orderId
+     * @return
+     */
+    Mono<ApiResult<ResOrder>> queryById(String orderId);
+
+    /**
+     * 根据姓名查询订单
+     * @param username
+     * @return
+     */
+    Mono<ApiResult<? extends List>> queryByName(String username);
 }

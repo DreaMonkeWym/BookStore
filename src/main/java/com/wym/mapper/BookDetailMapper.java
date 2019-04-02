@@ -287,8 +287,9 @@ public interface BookDetailMapper {
 
     @Update({
             "update bookdetail",
-            "set quantity = #{quantity,jdbcType=VARCHAR}",
+            "set quantity = #{quantity,jdbcType=VARCHAR},",
+            "soldout = #{soldout,jdbcType=VARCHAR}",
             "where bookid = #{bookid,jdbcType=VARCHAR}"
     })
-    int updateQuantity(String bookid, String quantity);
+    int updateQuantity(String bookid, String quantity, String soldout);
 }

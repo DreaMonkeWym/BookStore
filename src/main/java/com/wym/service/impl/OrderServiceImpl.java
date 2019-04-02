@@ -7,21 +7,20 @@ import com.wym.model.BookDetail;
 import com.wym.model.Cart;
 import com.wym.model.Orders;
 import com.wym.model.po.CartDetail;
+import com.wym.model.po.OrderDetail;
+import com.wym.model.po.ResOrder;
 import com.wym.service.OrderService;
 import com.wym.utils.ApiResult;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.RequestParam;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * Created by wym on 2019-03-26 18:37
@@ -164,7 +163,8 @@ public class OrderServiceImpl implements OrderService {
                 if (ordersMapper.insert(orders) > 0){
                     BookDetail bookDetail = bookDetailMapper.selectByPrimaryKey(cartDetail.getBookId());
                     String quantity = new BigInteger(bookDetail.getQuantity()).subtract(new BigInteger(cartDetail.getBookQuantity())).toString();
-                    bookDetailMapper.updateQuantity(bookDetail.getBookid(), quantity);
+                    String soldout = new BigInteger(bookDetail.getSoldout()).add(new BigInteger(cartDetail.getBookQuantity())).toString();
+                    bookDetailMapper.updateQuantity(bookDetail.getBookid(), quantity, soldout);
                     cartMapper.updatePayment(cartDetail.getCartId(), true);
                 }
             });
@@ -194,5 +194,69 @@ public class OrderServiceImpl implements OrderService {
         }).publishOn(Schedulers.elastic()).doOnError(t ->
                 log.error("delOrder is error!~~ orderIdList = {}", orderIdList, t))
                 .onErrorReturn(ApiResult.getApiResult(-1, "del the orders failly"));
+    }
+
+    @Override
+    public Mono<ApiResult<ResOrder>> queryById(String orderId) {
+        return Mono.fromSupplier(() -> {
+            ResOrder resOrder = queryOrder(orderId);
+            if (!Objects.isNull(resOrder)){
+                return ApiResult.getApiResult(resOrder);
+            }
+            return ApiResult.getApiResult(new ResOrder());
+        }).publishOn(Schedulers.elastic()).doOnError(t ->
+                log.error("queryById is error!~~ orderId = {}", orderId, t))
+                .onErrorReturn(ApiResult.getApiResult(new ResOrder()));
+    }
+
+    @Override
+    public Mono<ApiResult<? extends List>> queryByName(String username) {
+        return Mono.fromSupplier(() -> {
+            List<Orders> ordersList = ordersMapper.queryByName(username);
+            Set<String> orderSet = new HashSet<>();
+            if (!ordersList.isEmpty()){
+                ordersList.forEach(orders -> orderSet.add(orders.getOrderid()));
+            }
+            List<ResOrder> resOrderList = new ArrayList<>();
+            if (!orderSet.isEmpty()){
+                orderSet.forEach(orderId -> {
+                    ResOrder resOrder = queryOrder(orderId);
+                    resOrderList.add(resOrder);
+                });
+                return ApiResult.getApiResult(resOrderList);
+            }
+            return ApiResult.getApiResult(new ArrayList());
+        }).publishOn(Schedulers.elastic()).doOnError(t ->
+                log.error("queryByName is error!~~ username = {}", username, t))
+                .onErrorReturn(ApiResult.getApiResult(new ArrayList<>()));
+    }
+
+    private ResOrder queryOrder(String orderId) {
+        List<Orders> ordersList = ordersMapper.queryByPrimaryKey(orderId);
+        ResOrder resOrder = new ResOrder();
+        List<OrderDetail> orderDetailList = new ArrayList<>();
+        if (!ordersList.isEmpty()) {
+            ordersList.forEach(orders -> {
+                OrderDetail orderDetail = new OrderDetail();
+                Cart cart = cartMapper.selectByPrimaryKey(orders.getCartid());
+                if (!Objects.isNull(cart)) {
+                    BookDetail bookDetail = bookDetailMapper.selectByPrimaryKey(cart.getBookid());
+                    if (!Objects.isNull(bookDetail)) {
+                        orderDetail.setCartId(cart.getCartid());
+                        orderDetail.setBookId(bookDetail.getBookid());
+                        orderDetail.setAvatar(bookDetail.getAvatar());
+                        orderDetail.setBookName(bookDetail.getBookname());
+                        orderDetail.setPrice(bookDetail.getPrice());
+                        orderDetail.setQuantity(cart.getQuantity());
+                        String amount = new BigDecimal(orderDetail.getPrice()).multiply(new BigDecimal(orderDetail.getQuantity())).toEngineeringString();
+                        orderDetail.setAmount(amount);
+                        orderDetailList.add(orderDetail);
+                    }
+                }
+            });
+            resOrder.setOrderId(orderId);
+            resOrder.setOrderDetailList(orderDetailList);
+        }
+        return resOrder;
     }
 }
