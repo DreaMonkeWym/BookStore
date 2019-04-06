@@ -7,7 +7,6 @@ import java.io.Serializable;
 /**
  * Created by wym on 2019-04-02 17:48
  */
-
 @Data
 public class OrderDetail implements Serializable {
 

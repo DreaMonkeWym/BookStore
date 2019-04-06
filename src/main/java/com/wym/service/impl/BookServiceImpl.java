@@ -13,6 +13,7 @@ import com.wym.service.BookService;
 import com.wym.utils.ApiResult;
 import com.wym.utils.StaticConfig;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
@@ -26,7 +27,6 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * Created by wym on 2019-03-22 18:12
@@ -45,6 +45,8 @@ public class BookServiceImpl implements BookService {
     private CommentMapper commentMapper;
     @Resource
     private UserMapper userMapper;
+//    @Resource
+//    private ReactiveRedisTemplate reactiveRedisTemplate;
 
     private Mono<BookDetail> selectBookDetail(String bookId){
         return Mono.fromSupplier(() -> {
@@ -149,8 +151,8 @@ public class BookServiceImpl implements BookService {
                     bookByType.setAuthor(bookDetail.getAuthor());
                     bookByType.setAvatar(bookDetail.getAvatar());
                     bookByType.setBookname(bookDetail.getBookname());
-                    bookByType.setPrice(bookDetail.getPrice());                 
-                    bookByType.setGlance(bookDetail.getGlance());                
+                    bookByType.setPrice(bookDetail.getPrice());
+                    bookByType.setGlance(bookDetail.getGlance());
                     bookByType.setPublicationtime(bookDetail.getPublicationtime());
                     bookByTypeList.add(bookByType);
                 });

@@ -11,6 +11,7 @@ import java.util.List;
 public class ResOrder {
 
     private String orderId;
+    private String orderDate;
     private List<OrderDetail> orderDetailList;
 
 }

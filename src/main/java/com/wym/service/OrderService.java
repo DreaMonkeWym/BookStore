@@ -90,5 +90,5 @@ public interface OrderService {
      * @param username
      * @return
      */
-    Mono<ApiResult<? extends List>> queryByName(String username);
+    Mono<ApiResult<? extends List<ResOrder>>> queryByName(String username);
 }

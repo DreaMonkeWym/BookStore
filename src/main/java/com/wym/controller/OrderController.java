@@ -131,7 +131,7 @@ public class OrderController {
      * @return
      */
     @GetMapping("/querybyid")
-    public Mono<ApiResult<ResOrder>> queryById(String orderId){
+    public Mono<ApiResult<ResOrder>> queryById(@RequestParam String orderId){
         log.info("queryById ~ orderId = {}", orderId);
         return orderService.queryById(orderId);
     }
@@ -142,7 +142,7 @@ public class OrderController {
      * @return
      */
     @GetMapping("/querybyname")
-    public Mono<ApiResult<? extends List>> queryByName(String username) {
+    public Mono<ApiResult<? extends List<ResOrder>>> queryByName(@RequestParam String username) {
         log.info("queryByName ~ username = {}", username);
         return orderService.queryByName(username);
     }

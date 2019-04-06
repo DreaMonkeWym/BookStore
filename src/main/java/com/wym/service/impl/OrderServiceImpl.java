@@ -12,6 +12,10 @@ import com.wym.model.po.ResOrder;
 import com.wym.service.OrderService;
 import com.wym.utils.ApiResult;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.ReactiveRedisTemplate;
+import org.springframework.data.redis.core.ReactiveValueOperations;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Mono;
@@ -20,6 +24,7 @@ import reactor.core.scheduler.Schedulers;
 import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 /**
@@ -35,6 +40,10 @@ public class OrderServiceImpl implements OrderService {
     private BookDetailMapper bookDetailMapper;
     @Resource
     private OrdersMapper ordersMapper;
+    @Resource
+    private ReactiveRedisTemplate reactiveRedisTemplate;
+    @Resource
+    private RedisTemplate redisTemplate;
 
     private Mono<Cart> selectBookExist(String username, String bookId){
         return Mono.fromSupplier(() -> {
@@ -92,8 +101,6 @@ public class OrderServiceImpl implements OrderService {
                     cartDetail.setBookPrice(bookDetail.getPrice());
                     cartDetail.setBookQuantity(cart.getQuantity());
                     cartDetail.setQuantity(bookDetail.getQuantity());
-//                    String amount = new BigDecimal(cartDetail.getBookPrice()).multiply(new BigDecimal(cartDetail.getBookQuantity())).toEngineeringString();
-//                    cartDetail.setBookAmount(String.valueOf(amount));
                     cartDetailList.add(cartDetail);
                 });
                 return ApiResult.getApiResult(cartDetailList);
@@ -130,7 +137,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public Mono<ApiResult<Object>> delCartList(List<String> cartidList){
+    public Mono<ApiResult<Object>> delCartList(List<String> cartidList) {
         return Mono.fromSupplier(() -> {
             cartidList.forEach(cartid -> cartMapper.deleteByPrimaryKey(cartid));
             return ApiResult.getApiResult(200, "del books successfully");
@@ -201,6 +208,7 @@ public class OrderServiceImpl implements OrderService {
         return Mono.fromSupplier(() -> {
             ResOrder resOrder = queryOrder(orderId);
             if (!Objects.isNull(resOrder)){
+               //redis
                 return ApiResult.getApiResult(resOrder);
             }
             return ApiResult.getApiResult(new ResOrder());
@@ -210,27 +218,32 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public Mono<ApiResult<? extends List>> queryByName(String username) {
+    public Mono<ApiResult<? extends List<ResOrder>>> queryByName(String username) {
         return Mono.fromSupplier(() -> {
             List<Orders> ordersList = ordersMapper.queryByName(username);
             Set<String> orderSet = new HashSet<>();
-            if (!ordersList.isEmpty()){
+            if (!ordersList.isEmpty()) {
                 ordersList.forEach(orders -> orderSet.add(orders.getOrderid()));
             }
             List<ResOrder> resOrderList = new ArrayList<>();
-            if (!orderSet.isEmpty()){
+            if (!orderSet.isEmpty()) {
                 orderSet.forEach(orderId -> {
                     ResOrder resOrder = queryOrder(orderId);
                     resOrderList.add(resOrder);
                 });
                 return ApiResult.getApiResult(resOrderList);
             }
-            return ApiResult.getApiResult(new ArrayList());
+            return ApiResult.getApiResult(new ArrayList<ResOrder>());
         }).publishOn(Schedulers.elastic()).doOnError(t ->
                 log.error("queryByName is error!~~ username = {}", username, t))
                 .onErrorReturn(ApiResult.getApiResult(new ArrayList<>()));
     }
 
+    /**
+     * 查询订单
+     * @param orderId
+     * @return
+     */
     private ResOrder queryOrder(String orderId) {
         List<Orders> ordersList = ordersMapper.queryByPrimaryKey(orderId);
         ResOrder resOrder = new ResOrder();
@@ -254,7 +267,10 @@ public class OrderServiceImpl implements OrderService {
                     }
                 }
             });
+            SimpleDateFormat dateformat = new SimpleDateFormat("yyyy-MM-dd");
+            String orderDate = dateformat.format(Long.parseLong(orderId.substring(0, 13)));
             resOrder.setOrderId(orderId);
+            resOrder.setOrderDate(orderDate);
             resOrder.setOrderDetailList(orderDetailList);
         }
         return resOrder;
