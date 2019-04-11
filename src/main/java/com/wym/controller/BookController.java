@@ -129,8 +129,8 @@ public class BookController {
      * @return
      */
     @GetMapping("/querybyfavor")
-    public Mono<ApiResult<? extends List<BookRecommend>>> queryByFavor(@RequestParam  String username) {
-        log.info(" queryByFavor ~~ usernmae = {}", username);
+    public Mono<ApiResult<? extends List<BookRecommend>>> queryByFavor(@RequestParam(required = false)  String username) {
+        log.info(" queryByFavor ~~ username = {}", username);
         return bookService.queryByFavor(username);
     }
 

@@ -93,13 +93,13 @@ public interface UserMapper {
      */
     @Select({
         "select",
-        "username , avatar , favor",
+        "username ,password, avatar , favor",
         "from user",
         "where username = #{username,jdbcType=VARCHAR}"
     })
     @Results({
         @Result(column="username", property="username", jdbcType=JdbcType.VARCHAR, id=true),
-//        @Result(column="password", property="password", jdbcType=JdbcType.VARCHAR),
+        @Result(column="password", property="password", jdbcType=JdbcType.VARCHAR),
         @Result(column="favor", property="favor", jdbcType=JdbcType.VARCHAR),
         @Result(column="avatar", property="avatar", jdbcType=JdbcType.VARCHAR)
     })

@@ -29,4 +29,10 @@ public interface UserService {
       * @return
       */
      Mono<ApiResult<Object>> getRegisterInfo(String username, String password, String favor, MultipartFile file);
+
+     /**
+      * 用户注销
+      * @return
+      */
+     Mono<ApiResult<Object>> getLogoutInfo();
 }

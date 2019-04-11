@@ -32,14 +32,14 @@ public interface OrderService {
      * @param cartid
      * @return
      */
-    Mono<ApiResult<Object>> delCartBook(String cartid);
+    Mono<ApiResult<Object>> delCartBook(String cartid, String username);
 
     /**
      * 购物车中删除多个商品
      * @param cartidList
      * @return
      */
-    Mono<ApiResult<Object>> delCartList(List<String> cartidList);
+    Mono<ApiResult<Object>> delCartList(List<String> cartidList, String username);
 
     /**
      * 更改购物车商品数量
@@ -54,7 +54,7 @@ public interface OrderService {
      * @param cartDetailList
      * @return
      */
-    Mono<ApiResult<Object>> updateCartList(List<CartDetail> cartDetailList);
+    Mono<ApiResult<Object>> updateCartList(List<CartDetail> cartDetailList, String username);
 
     /**
      * 购物车提交订单

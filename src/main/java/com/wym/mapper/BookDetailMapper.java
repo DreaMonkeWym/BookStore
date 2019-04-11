@@ -203,7 +203,7 @@ public interface BookDetailMapper {
             "select",
             "bookid, typeid, avatar, descri, isbn, price, quantity, publicationtime, author, ",
             "soldout, glance, bookname",
-            "from bookdetail order by soldout desc limit 10"
+            "from bookdetail order by soldout+0 desc limit 10"
     })
     @Results({
             @Result(column="bookid", property="bookid", jdbcType=JdbcType.VARCHAR, id=true),

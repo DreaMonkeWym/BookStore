@@ -54,9 +54,9 @@ public class OrderController {
      * @return
      */
     @DeleteMapping("delcartbook")
-    public Mono<ApiResult<Object>> delCartBook(@RequestParam String cartId){
+    public Mono<ApiResult<Object>> delCartBook(@RequestParam String cartId, @RequestParam String username){
         log.info("delCartBook ~ cartId = {}", cartId);
-        return orderService.delCartBook(cartId);
+        return orderService.delCartBook(cartId, username);
     }
 
     /**
@@ -65,9 +65,9 @@ public class OrderController {
      * @return
      */
     @DeleteMapping("delcartlist")
-    public Mono<ApiResult<Object>> delCartList(@RequestParam List<String> cartidList){
+    public Mono<ApiResult<Object>> delCartList(@RequestParam List<String> cartidList, @RequestParam String username){
         log.info("delCartList ~ cartidList = {}",cartidList);
-        return orderService.delCartList(cartidList);
+        return orderService.delCartList(cartidList, username);
     }
     /**
      * 更改购物车商品数量
@@ -87,9 +87,9 @@ public class OrderController {
      * @return
      */
     @PutMapping("/updatecartlist")
-    public Mono<ApiResult<Object>> updateCartList(@RequestBody List<CartDetail> cartDetailList) {
-        log.info("updateCartList ~cartDetailList = {}", cartDetailList);
-        return orderService.updateCartList(cartDetailList);
+    public Mono<ApiResult<Object>> updateCartList(@RequestBody List<CartDetail> cartDetailList, @RequestParam String username) {
+        log.info("updateCartList ~cartDetailList = {}, username = {}", cartDetailList, username);
+        return orderService.updateCartList(cartDetailList, username);
     }
 
     /**

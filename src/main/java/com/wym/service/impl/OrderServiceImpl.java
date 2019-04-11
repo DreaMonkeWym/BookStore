@@ -6,17 +6,17 @@ import com.wym.mapper.OrdersMapper;
 import com.wym.model.BookDetail;
 import com.wym.model.Cart;
 import com.wym.model.Orders;
-import com.wym.model.po.CartDetail;
-import com.wym.model.po.OrderDetail;
-import com.wym.model.po.ResOrder;
+import com.wym.model.po.*;
+import com.wym.service.BookService;
 import com.wym.service.OrderService;
 import com.wym.utils.ApiResult;
+import com.wym.utils.RedisConfig;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.ReactiveRedisTemplate;
-import org.springframework.data.redis.core.ReactiveValueOperations;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.data.redis.core.*;
+import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
+import org.springframework.data.redis.serializer.StringRedisSerializer;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
@@ -41,8 +41,6 @@ public class OrderServiceImpl implements OrderService {
     @Resource
     private OrdersMapper ordersMapper;
     @Resource
-    private ReactiveRedisTemplate reactiveRedisTemplate;
-    @Resource
     private RedisTemplate redisTemplate;
 
     private Mono<Cart> selectBookExist(String username, String bookId){
@@ -59,6 +57,8 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public Mono addCart(String username, String bookId) {
         return Mono.fromSupplier(() -> {
+            RedisConfig redisConfig = new RedisConfig(redisTemplate);
+            HashOperations<String, String, CartDetail> hashOperations = redisConfig.getRedisTemplate().opsForHash();
             Mono<Cart> cartMono = selectBookExist(username, bookId);
             return cartMono.flatMap(carts -> {
                 if (StringUtils.isEmpty(carts.getCartid())){
@@ -69,12 +69,16 @@ public class OrderServiceImpl implements OrderService {
                     cart.setQuantity("1");
                     cart.setPayment(false);
                     if (cartMapper.insert(cart) > 0){
+                        setCartDetail(cart, username);
                         return Mono.just(ApiResult.getApiResult(200, "Book add cart successfully "));
                     }
                 }else {
                     String quantity = new BigInteger(carts.getQuantity()).add(new BigInteger("1")).toString();
                     // 是否超过图书总数 待实现
                     if (cartMapper.updateQuantity(carts.getCartid(), quantity) > 0){
+                        CartDetail updatecart = hashOperations.get("queryCart" + username, carts.getCartid());
+                        updatecart.setBookQuantity(quantity);
+                        hashOperations.put("queryCart" + username, carts.getCartid(), updatecart);
                         return Mono.just(ApiResult.getApiResult(200, "Book add cart successfully "));
                     }
                 }
@@ -88,19 +92,17 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public Mono<ApiResult<? extends List<CartDetail>>> queryCart(String username) {
         return Mono.fromSupplier(() -> {
+            RedisConfig redisConfig = new RedisConfig(redisTemplate);
+            HashOperations<String, String, CartDetail> hashOperations = redisConfig.getRedisTemplate().opsForHash();
+            if (redisConfig.getRedisTemplate().hasKey("queryCart" + username)) {
+                List<CartDetail> cartDetailList = hashOperations.values("queryCart" + username);
+                return ApiResult.getApiResult(cartDetailList);
+            }
             List<Cart> cartList = cartMapper.queryCart(username, false);
             List<CartDetail> cartDetailList = new ArrayList<>();
             if (!cartList.isEmpty()){
                 cartList.forEach(cart -> {
-                    CartDetail cartDetail = new CartDetail();
-                    BookDetail bookDetail = bookDetailMapper.selectByPrimaryKey(cart.getBookid());
-                    cartDetail.setCartId(cart.getCartid());
-                    cartDetail.setBookId(cart.getBookid());
-                    cartDetail.setBookName(bookDetail.getBookname());
-                    cartDetail.setBookAvatar(bookDetail.getAvatar());
-                    cartDetail.setBookPrice(bookDetail.getPrice());
-                    cartDetail.setBookQuantity(cart.getQuantity());
-                    cartDetail.setQuantity(bookDetail.getQuantity());
+                    CartDetail cartDetail = setCartDetail(cart, username);
                     cartDetailList.add(cartDetail);
                 });
                 return ApiResult.getApiResult(cartDetailList);
@@ -111,10 +113,29 @@ public class OrderServiceImpl implements OrderService {
                 .onErrorReturn(ApiResult.getApiResult(new ArrayList<>()));
     }
 
+    private CartDetail setCartDetail(Cart cart, String username) {
+        RedisConfig redisConfig = new RedisConfig(redisTemplate);
+        HashOperations<String, String, CartDetail> hashOperations = redisConfig.getRedisTemplate().opsForHash();
+        CartDetail cartDetail = new CartDetail();
+        BookDetail bookDetail = bookDetailMapper.selectByPrimaryKey(cart.getBookid());
+        cartDetail.setCartId(cart.getCartid());
+        cartDetail.setBookId(cart.getBookid());
+        cartDetail.setBookName(bookDetail.getBookname());
+        cartDetail.setBookAvatar(bookDetail.getAvatar());
+        cartDetail.setBookPrice(bookDetail.getPrice());
+        cartDetail.setBookQuantity(cart.getQuantity());
+        cartDetail.setQuantity(bookDetail.getQuantity());
+        hashOperations.put("queryCart" + username, cartDetail.getCartId(), cartDetail);
+        return cartDetail;
+    }
+
     @Override
-    public Mono<ApiResult<Object>> delCartBook(String cartid) {
+    public Mono<ApiResult<Object>> delCartBook(String cartid, String username) {
         return Mono.fromSupplier(() -> {
+            RedisConfig redisConfig = new RedisConfig(redisTemplate);
+            HashOperations<String, String, CartDetail> hashOperations = redisConfig.getRedisTemplate().opsForHash();
             if (cartMapper.deleteByPrimaryKey(cartid) > 0){
+                hashOperations.delete("queryCart" + username, cartid);
                 return ApiResult.getApiResult(200,"del the book successfully");
             }
             return ApiResult.getApiResult(-1,"del the book failly");
@@ -137,9 +158,14 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public Mono<ApiResult<Object>> delCartList(List<String> cartidList) {
+    public Mono<ApiResult<Object>> delCartList(List<String> cartidList, String username) {
         return Mono.fromSupplier(() -> {
-            cartidList.forEach(cartid -> cartMapper.deleteByPrimaryKey(cartid));
+            RedisConfig redisConfig = new RedisConfig(redisTemplate);
+            HashOperations<String, String, CartDetail> hashOperations = redisConfig.getRedisTemplate().opsForHash();
+            cartidList.forEach(cartid -> {
+                hashOperations.delete("queryCart" + username, cartid);
+                cartMapper.deleteByPrimaryKey(cartid);
+            });
             return ApiResult.getApiResult(200, "del books successfully");
         }).publishOn(Schedulers.elastic()).doOnError(t ->
                 log.error("delCartList is error!~~ cartidList = {}", cartidList, t))
@@ -147,12 +173,20 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public Mono<ApiResult<Object>> updateCartList(List<CartDetail> cartDetailList) {
+    public Mono<ApiResult<Object>> updateCartList(List<CartDetail> cartDetailList, String username) {
         return Mono.fromSupplier(() -> {
-            cartDetailList.forEach(cartDetail ->
-                    cartMapper.updateQuantity(cartDetail.getCartId(),cartDetail.getBookQuantity())
-            );
-            return ApiResult.getApiResult(200, "updateCartList successfully");
+            RedisConfig redisConfig = new RedisConfig(redisTemplate);
+            HashOperations<String, String, CartDetail> hashOperations = redisConfig.getRedisTemplate().opsForHash();
+            if (!CollectionUtils.isEmpty(cartDetailList) && cartDetailList.size() > 0){
+                cartDetailList.forEach(cartDetail ->{
+                    CartDetail updatecart = hashOperations.get("queryCart" + username, cartDetail.getCartId());
+                    updatecart.setBookQuantity(cartDetail.getBookQuantity());
+                    hashOperations.put("queryCart" + username, cartDetail.getCartId(), updatecart);
+                    cartMapper.updateQuantity(cartDetail.getCartId(),cartDetail.getBookQuantity());
+                });
+                return ApiResult.getApiResult(200, "updateCartList successfully");
+            }
+            return ApiResult.getApiResult(-1, "updateCartList failly");
         }).publishOn(Schedulers.elastic()).doOnError(t ->
                 log.error("updateCartList is error!~~ cartDetailList = {}", cartDetailList, t))
                 .onErrorReturn(ApiResult.getApiResult(-1, "updateCartList failly"));
@@ -161,31 +195,68 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public Mono<ApiResult<Object>> commitCartList(List<CartDetail> cartDetailList, String username) {
         return Mono.fromSupplier(() -> {
+            RedisConfig redisConfig = new RedisConfig(redisTemplate);
+            HashOperations<String, String, CartDetail> hashOperations = redisConfig.getRedisTemplate().opsForHash();
             String orderid = System.currentTimeMillis() + username;
-            cartDetailList.forEach(cartDetail -> {
-                Orders orders = new Orders();
-                orders.setOrderid(orderid);
-                orders.setUsername(username);
-                orders.setCartid(cartDetail.getCartId());
-                if (ordersMapper.insert(orders) > 0){
-                    BookDetail bookDetail = bookDetailMapper.selectByPrimaryKey(cartDetail.getBookId());
-                    String quantity = new BigInteger(bookDetail.getQuantity()).subtract(new BigInteger(cartDetail.getBookQuantity())).toString();
-                    String soldout = new BigInteger(bookDetail.getSoldout()).add(new BigInteger(cartDetail.getBookQuantity())).toString();
-                    bookDetailMapper.updateQuantity(bookDetail.getBookid(), quantity, soldout);
-                    cartMapper.updatePayment(cartDetail.getCartId(), true);
-                }
-            });
-            return ApiResult.getApiResult(200, "commit cart successfully ");
+            if (!CollectionUtils.isEmpty(cartDetailList) && cartDetailList.size() > 0){
+                cartDetailList.forEach(cartDetail -> {
+                    Orders orders = new Orders();
+                    orders.setOrderid(orderid);
+                    orders.setUsername(username);
+                    orders.setCartid(cartDetail.getCartId());
+                    if (ordersMapper.insert(orders) > 0){
+                        BookDetail bookDetail = bookDetailMapper.selectByPrimaryKey(cartDetail.getBookId());
+                        String quantity = new BigInteger(bookDetail.getQuantity()).subtract(new BigInteger(cartDetail.getBookQuantity())).toString();
+                        String soldout = new BigInteger(bookDetail.getSoldout()).add(new BigInteger(cartDetail.getBookQuantity())).toString();
+                        bookDetailMapper.updateQuantity(bookDetail.getBookid(), quantity, soldout);
+                        List<BookRecommend> bookRecommendList = new ArrayList<>();
+                        BookRecommendList(bookRecommendList);
+                        cartMapper.updatePayment(cartDetail.getCartId(), true);
+                        hashOperations.delete("queryCart" + username, cartDetail.getCartId());
+                    }
+                });
+                return ApiResult.getApiResult(200, "commit cart successfully ");
+            }
+            return ApiResult.getApiResult(-1, "commit cart failly");
         }).publishOn(Schedulers.elastic()).doOnError(t ->
                 log.error("commitCartList is error!~~ cartDetailList = {}, username = {}", cartDetailList, username, t))
                 .onErrorReturn(ApiResult.getApiResult(-1, "commit cart failly"));
     }
 
+    private BookRecommend setBookRecommend(BookDetail bookDetail){
+        BookRecommend bookRecommend = new BookRecommend();
+        bookRecommend.setBookid(bookDetail.getBookid());
+        bookRecommend.setAvatar(bookDetail.getAvatar());
+        bookRecommend.setBookname(bookDetail.getBookname());
+        return bookRecommend;
+    }
+
+    private void BookRecommendList(List<BookRecommend> bookRecommendList) {
+        RedisConfig redisConfig = new RedisConfig(redisTemplate);
+        ValueOperations<String, List<BookRecommend>> valueOperations = redisConfig.getRedisTemplate().opsForValue();
+        List<BookDetail> bookDetailList = bookDetailMapper.queryOrderSold();
+        if (!bookDetailList.isEmpty() && bookDetailList.size() > 0){
+            bookDetailList.forEach(bookDetail -> {
+                BookRecommend bookRecommend = setBookRecommend(bookDetail);
+                bookRecommendList.add(bookRecommend);
+            });
+            valueOperations.set("queryOrderSold", bookRecommendList);
+        }
+    }
+
     @Override
     public Mono<ApiResult<Object>> delOrder(String orderId) {
         return Mono.fromSupplier(() -> {
-            if (ordersMapper.deleteOrder(orderId) > 0){
-                return ApiResult.getApiResult(200, "del the order successfully");
+            RedisConfig redisConfig = new RedisConfig(redisTemplate);
+            ValueOperations<String, ResOrder> valueOperations = redisConfig.getRedisTemplate().opsForValue();
+            if (redisConfig.getRedisTemplate().hasKey(orderId)){
+                if (valueOperations.getOperations().delete(orderId) && ordersMapper.deleteOrder(orderId) > 0){
+                    return ApiResult.getApiResult(200, "del the order successfully");
+                }
+            }else {
+                if (ordersMapper.deleteOrder(orderId) > 0){
+                    return ApiResult.getApiResult(200, "del the order successfully");
+                }
             }
             return ApiResult.getApiResult(-1, "del the order failly");
         }).publishOn(Schedulers.elastic()).doOnError(t ->
@@ -196,7 +267,12 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public Mono<ApiResult<Object>> delOrderList(List<String> orderIdList) {
         return Mono.fromSupplier(() -> {
-            orderIdList.forEach(orderId -> ordersMapper.deleteOrder(orderId));
+            RedisConfig redisConfig = new RedisConfig(redisTemplate);
+            ValueOperations<String, ResOrder> valueOperations = redisConfig.getRedisTemplate().opsForValue();
+            orderIdList.forEach(orderId -> {
+                valueOperations.getOperations().delete(orderId);
+                ordersMapper.deleteOrder(orderId);
+            });
             return ApiResult.getApiResult(200, "del the orders successfully");
         }).publishOn(Schedulers.elastic()).doOnError(t ->
                 log.error("delOrder is error!~~ orderIdList = {}", orderIdList, t))
@@ -208,7 +284,6 @@ public class OrderServiceImpl implements OrderService {
         return Mono.fromSupplier(() -> {
             ResOrder resOrder = queryOrder(orderId);
             if (!Objects.isNull(resOrder)){
-               //redis
                 return ApiResult.getApiResult(resOrder);
             }
             return ApiResult.getApiResult(new ResOrder());
@@ -245,34 +320,43 @@ public class OrderServiceImpl implements OrderService {
      * @return
      */
     private ResOrder queryOrder(String orderId) {
-        List<Orders> ordersList = ordersMapper.queryByPrimaryKey(orderId);
-        ResOrder resOrder = new ResOrder();
-        List<OrderDetail> orderDetailList = new ArrayList<>();
-        if (!ordersList.isEmpty()) {
-            ordersList.forEach(orders -> {
-                OrderDetail orderDetail = new OrderDetail();
-                Cart cart = cartMapper.selectByPrimaryKey(orders.getCartid());
-                if (!Objects.isNull(cart)) {
-                    BookDetail bookDetail = bookDetailMapper.selectByPrimaryKey(cart.getBookid());
-                    if (!Objects.isNull(bookDetail)) {
-                        orderDetail.setCartId(cart.getCartid());
-                        orderDetail.setBookId(bookDetail.getBookid());
-                        orderDetail.setAvatar(bookDetail.getAvatar());
-                        orderDetail.setBookName(bookDetail.getBookname());
-                        orderDetail.setPrice(bookDetail.getPrice());
-                        orderDetail.setQuantity(cart.getQuantity());
-                        String amount = new BigDecimal(orderDetail.getPrice()).multiply(new BigDecimal(orderDetail.getQuantity())).toEngineeringString();
-                        orderDetail.setAmount(amount);
-                        orderDetailList.add(orderDetail);
+        RedisConfig redisConfig = new RedisConfig(redisTemplate);
+        ValueOperations<String, ResOrder> valueOperations = redisConfig.getRedisTemplate().opsForValue();
+        if (redisConfig.getRedisTemplate().hasKey(orderId)){
+            return valueOperations.get(orderId);
+        }else {
+            List<Orders> ordersList = ordersMapper.queryByPrimaryKey(orderId);
+            ResOrder resOrder = new ResOrder();
+            List<OrderDetail> orderDetailList = new ArrayList<>();
+            if (!CollectionUtils.isEmpty(ordersList) && ordersList.size() > 0) {
+                ordersList.forEach(orders -> {
+                    OrderDetail orderDetail = new OrderDetail();
+                    Cart cart = cartMapper.selectByPrimaryKey(orders.getCartid());
+                    if (!Objects.isNull(cart)) {
+                        BookDetail bookDetail = bookDetailMapper.selectByPrimaryKey(cart.getBookid());
+                        if (!Objects.isNull(bookDetail)) {
+                            orderDetail.setCartId(cart.getCartid());
+                            orderDetail.setBookId(bookDetail.getBookid());
+                            orderDetail.setAvatar(bookDetail.getAvatar());
+                            orderDetail.setBookName(bookDetail.getBookname());
+                            orderDetail.setPrice(bookDetail.getPrice());
+                            orderDetail.setQuantity(cart.getQuantity());
+                            String amount = new BigDecimal(orderDetail.getPrice()).multiply(new BigDecimal(orderDetail.getQuantity())).toEngineeringString();
+                            orderDetail.setAmount(amount);
+                            orderDetailList.add(orderDetail);
+                        }
                     }
-                }
-            });
-            SimpleDateFormat dateformat = new SimpleDateFormat("yyyy-MM-dd");
-            String orderDate = dateformat.format(Long.parseLong(orderId.substring(0, 13)));
-            resOrder.setOrderId(orderId);
-            resOrder.setOrderDate(orderDate);
-            resOrder.setOrderDetailList(orderDetailList);
+                });
+                SimpleDateFormat dateformat = new SimpleDateFormat("yyyy-MM-dd");
+                String orderDate = dateformat.format(Long.parseLong(orderId.substring(0, 13)));
+                resOrder.setOrderId(orderId);
+                resOrder.setOrderDate(orderDate);
+                resOrder.setOrderDetailList(orderDetailList);
+            }
+            if (!CollectionUtils.isEmpty(resOrder.getOrderDetailList()) && resOrder.getOrderDetailList().size() > 0){
+                valueOperations.set(orderId, resOrder);
+            }
+            return resOrder;
         }
-        return resOrder;
     }
 }

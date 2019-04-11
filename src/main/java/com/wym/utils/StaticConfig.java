@@ -15,5 +15,6 @@ public class StaticConfig {
 
     @Value("${file.path}")
     private String filePath;
-
+    @Value("${typeId}")
+    private String typeId;
 }

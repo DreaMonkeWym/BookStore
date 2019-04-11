@@ -20,6 +20,7 @@ public class ResBookDetail implements Serializable {
     private String glance;
     private String bookname;
     private String quantity;
+    private String typeId;
     private List<ResComment> commentList;
 
 }
