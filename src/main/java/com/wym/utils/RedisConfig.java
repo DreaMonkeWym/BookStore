@@ -19,6 +19,7 @@ public class RedisConfig {
     }
 
     public RedisConfig(RedisTemplate redisTemplate) {
+        // 解决对象化造成的乱码
         redisTemplate.setKeySerializer(new StringRedisSerializer());
         redisTemplate.setValueSerializer(new GenericJackson2JsonRedisSerializer());
         redisTemplate.setHashKeySerializer(new StringRedisSerializer());

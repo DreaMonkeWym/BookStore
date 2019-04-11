@@ -4,7 +4,6 @@ import com.wym.mapper.AdminMapper;
 import com.wym.mapper.UserMapper;
 import com.wym.model.Admin;
 import com.wym.model.User;
-import com.wym.model.po.ResOrder;
 import com.wym.service.UserService;
 import com.wym.utils.ApiResult;
 import com.wym.utils.MD5Util;
@@ -21,7 +20,6 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 import javax.annotation.Resource;
-import javax.jws.soap.SOAPBinding;
 import java.io.File;
 import java.io.IOException;
 
@@ -95,7 +93,7 @@ public class UserServiceImpl implements UserService {
             return Mono.zip(adminMono, userMono).map(tuple -> {
                 if (!StringUtils.isEmpty(tuple.getT1().getAdminpassword()) && tuple.getT1().getAdminpassword().equals(MD5Util.encryptMD5(password))){
                     valueOperation.set("admin" + username, tuple.getT1());
-                    return ApiResult.getApiResult(201, "admin login success");
+                    return ApiResult.getApiResult(200, "admin login success");
                 } else if (!StringUtils.isEmpty(tuple.getT2().getPassword()) && tuple.getT2().getPassword().equals(MD5Util.encryptMD5(password))){
                     valueOperations.set("user" + username, tuple.getT2());
                     valueOperations.set("recentUser", tuple.getT2());
