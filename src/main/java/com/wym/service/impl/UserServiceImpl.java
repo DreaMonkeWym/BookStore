@@ -4,6 +4,7 @@ import com.wym.mapper.AdminMapper;
 import com.wym.mapper.UserMapper;
 import com.wym.model.Admin;
 import com.wym.model.User;
+import com.wym.model.po.ResUser;
 import com.wym.service.UserService;
 import com.wym.utils.ApiResult;
 import com.wym.utils.MD5Util;
@@ -65,9 +66,15 @@ public class UserServiceImpl implements UserService {
 //            String token = System.currentTimeMillis() + username ; 有些复杂，是否完成待定，现模拟单点登录
             RedisConfig redisConfig = new RedisConfig(redisTemplate);
             ValueOperations<String, User> valueOperations = redisConfig.getRedisTemplate().opsForValue();
+            ValueOperations<String, Admin> adminValueOperations = redisConfig.getRedisTemplate().opsForValue();
             if (redisConfig.getRedisTemplate().hasKey("recentUser")) {
                 User user = valueOperations.get("recentUser");
                 if (username.equals(user.getUsername())) {
+                    return ApiResult.getApiResult(-1, "You are logged in ! ~ ");
+                }
+            } else if (redisConfig.getRedisTemplate().hasKey("recentAdmin")) {
+                Admin admin = adminValueOperations.get("recentAdmin");
+                if (username.equals(admin.getAdminname())) {
                     return ApiResult.getApiResult(-1, "You are logged in ! ~ ");
                 }
             }
@@ -75,7 +82,13 @@ public class UserServiceImpl implements UserService {
             if (redisConfig.getRedisTemplate().hasKey("admin" + username)) {
                 if (valueOperation.get("admin" + username).getAdminname().equals(username) &&
                         valueOperation.get("admin" + username).getAdminpassword().equals(MD5Util.encryptMD5(password))) {
-                    return ApiResult.getApiResult(200, "admin login success");
+                    Admin admin = new Admin();
+                    admin.setAdminname(username);
+                    adminValueOperations.set("recentAdmin", admin);
+                    ResUser resUser = new ResUser();
+                    resUser.setUsername(username);
+                    resUser.setIsRoot(true);
+                    return ApiResult.getApiResult("admin login success", resUser);
                 }
                     return ApiResult.getApiResult(-1, "login fail");
             } else if (redisConfig.getRedisTemplate().hasKey("user" + username)){
@@ -84,7 +97,10 @@ public class UserServiceImpl implements UserService {
                     User user = new User();
                     user.setUsername(username);
                     valueOperations.set("recentUser", user);
-                    return ApiResult.getApiResult(200, "user login success");
+                    ResUser resUser = new ResUser();
+                    resUser.setUsername(username);
+                    resUser.setIsRoot(false);
+                    return ApiResult.getApiResult( "user login success", resUser);
                 }
                     return ApiResult.getApiResult(-1, "login fail");
             }
@@ -93,11 +109,20 @@ public class UserServiceImpl implements UserService {
             return Mono.zip(adminMono, userMono).map(tuple -> {
                 if (!StringUtils.isEmpty(tuple.getT1().getAdminpassword()) && tuple.getT1().getAdminpassword().equals(MD5Util.encryptMD5(password))){
                     valueOperation.set("admin" + username, tuple.getT1());
-                    return ApiResult.getApiResult(200, "admin login success");
+                    Admin admin = new Admin();
+                    admin.setAdminname(username);
+                    adminValueOperations.set("recentAdmin", admin);
+                    ResUser resUser = new ResUser();
+                    resUser.setUsername(username);
+                    resUser.setIsRoot(true);
+                    return ApiResult.getApiResult("admin login success", resUser);
                 } else if (!StringUtils.isEmpty(tuple.getT2().getPassword()) && tuple.getT2().getPassword().equals(MD5Util.encryptMD5(password))){
                     valueOperations.set("user" + username, tuple.getT2());
                     valueOperations.set("recentUser", tuple.getT2());
-                    return ApiResult.getApiResult(200, "user login success");
+                    ResUser resUser = new ResUser();
+                    resUser.setUsername(username);
+                    resUser.setIsRoot(false);
+                    return ApiResult.getApiResult( "user login success", resUser);
                 }
                 return ApiResult.getApiResult(-1, "login fail");
             }).publishOn(Schedulers.elastic()).doOnError(t ->
@@ -138,7 +163,7 @@ public class UserServiceImpl implements UserService {
                         return ApiResult.getApiResult(200, "user register success");
                     }
                 }
-                return  ApiResult.getApiResult(-1, "user register fail");
+                return  ApiResult.getApiResult(-100, "user register fail");
             }).publishOn(Schedulers.elastic()).doOnError(t ->
                     log.error("getRegisterInfo zip is error!~~,username == {}", username, t))
                     .onErrorReturn(ApiResult.getApiResult(-1, "user register fail"));
@@ -150,13 +175,17 @@ public class UserServiceImpl implements UserService {
         return Mono.fromSupplier(() -> {
             RedisConfig redisConfig = new RedisConfig(redisTemplate);
             ValueOperations<String, User> valueOperations = redisConfig.getRedisTemplate().opsForValue();
+            ValueOperations<String, Admin> valueOperation= redisConfig.getRedisTemplate().opsForValue();
             if (redisConfig.getRedisTemplate().hasKey("recentUser")) {
                 valueOperations.getOperations().delete("recentUser");
                 return  ApiResult.getApiResult(200, "user logout successfully");
+            } else if (redisConfig.getRedisTemplate().hasKey("recentAdmin")) {
+                valueOperation.getOperations().delete("recentAdmin");
+                return  ApiResult.getApiResult(200, "admin logout successfully");
             }
-            return  ApiResult.getApiResult(-1, "user logout fail");
+            return  ApiResult.getApiResult(-1, "logout fail");
         }).publishOn(Schedulers.elastic()).doOnError(t ->
                 log.error("getLogoutInfo error!~~ ", t))
-                .onErrorReturn(ApiResult.getApiResult(-1, "user register fail"));
+                .onErrorReturn(ApiResult.getApiResult(-1, "logout fail"));
     }
 }

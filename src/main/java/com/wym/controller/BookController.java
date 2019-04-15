@@ -81,7 +81,7 @@ public class BookController {
      * @param bookId
      * @return
      */
-    @GetMapping("/queryBookDetail")
+    @PostMapping("/queryBookDetail")
     public Mono<ApiResult<ResBookDetail>> queryBookDetail(@RequestParam String bookId){
         log.info("queryBookDetail ~~ bookId = {}", bookId);
         return bookService.queryBookDetail(bookId);
@@ -107,7 +107,7 @@ public class BookController {
      * @param bookName
      * @return
      */
-    @GetMapping("/querybookbyname")
+    @PostMapping("/querybookbyname")
     public Mono<ApiResult<? extends List<BookByType>>> queryBookByName(@RequestParam String bookName){
         log.info("queryBookByName ~~ bookName = {}", bookName);
         return bookService.queryBookByName(bookName);
@@ -128,7 +128,7 @@ public class BookController {
      * @param username
      * @return
      */
-    @GetMapping("/querybyfavor")
+    @PostMapping("/querybyfavor")
     public Mono<ApiResult<? extends List<BookRecommend>>> queryByFavor(@RequestParam(required = false)  String username) {
         log.info(" queryByFavor ~~ username = {}", username);
         return bookService.queryByFavor(username);

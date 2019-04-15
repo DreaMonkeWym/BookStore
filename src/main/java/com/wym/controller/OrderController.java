@@ -141,7 +141,7 @@ public class OrderController {
      * @param username
      * @return
      */
-    @GetMapping("/querybyname")
+    @PostMapping("/querybyname")
     public Mono<ApiResult<? extends List<ResOrder>>> queryByName(@RequestParam String username) {
         log.info("queryByName ~ username = {}", username);
         return orderService.queryByName(username);

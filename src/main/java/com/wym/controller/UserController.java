@@ -12,7 +12,7 @@ import javax.annotation.Resource;
  * Created by wym on 2019-03-12 13:32
  */
 @RestController
-@CrossOrigin
+@CrossOrigin(allowCredentials="true", origins = "http://localhost:8080")
 @RequestMapping("/user")
 @Slf4j
 public class UserController {
@@ -25,7 +25,7 @@ public class UserController {
      * @param password
      * @return
      */
-    @GetMapping("/login")
+    @PostMapping("/login")
     public Mono<ApiResult<Object>> getLoginInfo(@RequestParam String username, @RequestParam String password) {
         log.info("getLoginInfo username = {}, password = {}", username, password);
         return userService.getLoginInfo(username, password);
@@ -52,7 +52,7 @@ public class UserController {
      * 用户注销
      * @return
      */
-    @GetMapping("/logout")
+    @PostMapping("/logout")
     public Mono<ApiResult<Object>> getLogoutInfo() {
         log.info("getLogoutInfo ~");
         return userService.getLogoutInfo();
