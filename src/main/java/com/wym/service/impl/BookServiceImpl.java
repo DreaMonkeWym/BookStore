@@ -270,6 +270,11 @@ public class BookServiceImpl implements BookService {
             ValueOperations<String, ResBookDetail> valueOperations = redisConfig.getRedisTemplate().opsForValue();
             if (redisConfig.getRedisTemplate().hasKey(bookId)) {
                 ResBookDetail resBookDetail = valueOperations.get(bookId);
+                String glance = new BigInteger(resBookDetail.getGlance()).add(new BigInteger("1")).toString();
+                if (bookDetailMapper.updateGlance(bookId, glance) > 0){
+                    resBookDetail.setGlance(glance);
+                    valueOperations.set(bookId, resBookDetail);
+                }
                 setRecentView(resBookDetail.getTypeId());
                 return ApiResult.getApiResult(resBookDetail);
             }

@@ -81,7 +81,7 @@ public class BookController {
      * @param bookId
      * @return
      */
-    @PostMapping("/queryBookDetail")
+    @PostMapping("/querybookdetail")
     public Mono<ApiResult<ResBookDetail>> queryBookDetail(@RequestParam String bookId){
         log.info("queryBookDetail ~~ bookId = {}", bookId);
         return bookService.queryBookDetail(bookId);
