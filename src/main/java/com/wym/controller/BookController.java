@@ -19,7 +19,7 @@ import java.util.List;
  * Created by wym on 2019-03-22 18:00
  */
 @RestController
-@CrossOrigin
+@CrossOrigin(allowCredentials="true", origins = "http://localhost:8080")
 @RequestMapping("/book")
 @Slf4j
 public class BookController {
