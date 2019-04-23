@@ -19,7 +19,6 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 import javax.annotation.Resource;
-import java.awt.print.Book;
 import java.io.File;
 import java.io.IOException;
 import java.math.BigInteger;
@@ -274,6 +273,7 @@ public class BookServiceImpl implements BookService {
                 if (bookDetailMapper.updateGlance(bookId, glance) > 0){
                     resBookDetail.setGlance(glance);
                     valueOperations.set(bookId, resBookDetail);
+                    bookByTypeList(resBookDetail.getTypeId());
                 }
                 setRecentView(resBookDetail.getTypeId());
                 return ApiResult.getApiResult(resBookDetail);

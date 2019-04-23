@@ -70,7 +70,7 @@ public class BookController {
      * @param typeId
      * @return
      */
-    @GetMapping("/querybookbytype")
+    @PostMapping("/querybookbytype")
     public Mono<ApiResult<? extends List<BookByType>>> queryBookByType(@RequestParam String typeId){
         log.info("queryBookByType ~~ typeId = {}", typeId);
         return bookService.queryBookByType(typeId);
