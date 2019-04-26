@@ -84,6 +84,8 @@ public class BookServiceImpl implements BookService {
     public Mono addBookDetail(String typeName, String bookName, String descri, String isbn, String price,
                                                  String quantity, String publicationTime, String author, MultipartFile file) {
         return Mono.fromSupplier(() -> {
+            RedisConfig redisConfig = new RedisConfig(redisTemplate);
+            ValueOperations<String, List<BookRecommend>> valueOperations = redisConfig.getRedisTemplate().opsForValue();
             String bookId = String.valueOf(System.currentTimeMillis());
             Mono<BookDetail> bookDetailMono = selectBookISBN(isbn);
             BookType bookType = bookTypeMapper.selectByPrimaryName(typeName);
@@ -116,6 +118,7 @@ public class BookServiceImpl implements BookService {
                             log.info("图片上传失败！ ~~", e);
                         }
                         bookByTypeList(bookType.getTypeid());
+                        valueOperations.getOperations().delete("queryByFavorNull");
                         return Mono.just(ApiResult.getApiResult(200, "add book success"));
                     }
                 }
@@ -311,6 +314,7 @@ public class BookServiceImpl implements BookService {
                     resBookDetail.setCommentList(resCommentList);
                 }
                 setRecentView(tuple.getT1().getTypeid());
+                bookByTypeList(tuple.getT1().getTypeid());
                 valueOperations.set(bookId, resBookDetail);
                 return ApiResult.getApiResult(resBookDetail);
             }).publishOn(Schedulers.elastic()).doOnError(t ->
@@ -410,8 +414,8 @@ public class BookServiceImpl implements BookService {
                 }
                 if (redisConfig.getRedisTemplate().hasKey(typeId)) {
                     List<BookByType> bookByTypeList = hashOperations.values(typeId);
-                    if (bookByTypeList.size() > 10){
-                        bookByTypeList = bookByTypeList.subList(0, 10);
+                    if (bookByTypeList.size() > 8){
+                        bookByTypeList = bookByTypeList.subList(0, 8);
                     }
                     List<BookRecommend> bookRecommendList = new ArrayList<>();
                     bookByTypeList.forEach(bookByType -> {

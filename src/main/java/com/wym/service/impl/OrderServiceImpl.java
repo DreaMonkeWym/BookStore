@@ -144,7 +144,6 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public Mono<ApiResult<Object>> updateCartBook(String cartid, String quantity) {
         return Mono.fromSupplier(() -> {
-            // 是否超过图书总数 待实现
             if (cartMapper.updateQuantity(cartid, quantity) > 0){
                 return ApiResult.getApiResult(200, "update the book successfully");
             }
@@ -194,6 +193,7 @@ public class OrderServiceImpl implements OrderService {
         return Mono.fromSupplier(() -> {
             RedisConfig redisConfig = new RedisConfig(redisTemplate);
             HashOperations<String, String, CartDetail> hashOperations = redisConfig.getRedisTemplate().opsForHash();
+            ValueOperations<String, List<BookRecommend>> valueOperations = redisConfig.getRedisTemplate().opsForValue();
             String orderid = System.currentTimeMillis() + username;
             if (!CollectionUtils.isEmpty(cartDetailList) && cartDetailList.size() > 0){
                 cartDetailList.forEach(cartDetail -> {
@@ -206,39 +206,17 @@ public class OrderServiceImpl implements OrderService {
                         String quantity = new BigInteger(bookDetail.getQuantity()).subtract(new BigInteger(cartDetail.getBookQuantity())).toString();
                         String soldout = new BigInteger(bookDetail.getSoldout()).add(new BigInteger(cartDetail.getBookQuantity())).toString();
                         bookDetailMapper.updateQuantity(bookDetail.getBookid(), quantity, soldout);
-                        List<BookRecommend> bookRecommendList = new ArrayList<>();
-                        BookRecommendList(bookRecommendList);
                         cartMapper.updatePayment(cartDetail.getCartId(), true);
                         hashOperations.delete("queryCart" + username, cartDetail.getCartId());
                     }
                 });
+                valueOperations.getOperations().delete("queryOrderSold");
                 return ApiResult.getApiResult(200, "commit cart successfully ");
             }
             return ApiResult.getApiResult(-1, "commit cart failly");
         }).publishOn(Schedulers.elastic()).doOnError(t ->
                 log.error("commitCartList is error!~~ cartDetailList = {}, username = {}", cartDetailList, username, t))
                 .onErrorReturn(ApiResult.getApiResult(-1, "commit cart failly"));
-    }
-
-    private BookRecommend setBookRecommend(BookDetail bookDetail){
-        BookRecommend bookRecommend = new BookRecommend();
-        bookRecommend.setBookid(bookDetail.getBookid());
-        bookRecommend.setAvatar(bookDetail.getAvatar());
-        bookRecommend.setBookname(bookDetail.getBookname());
-        return bookRecommend;
-    }
-
-    private void BookRecommendList(List<BookRecommend> bookRecommendList) {
-        RedisConfig redisConfig = new RedisConfig(redisTemplate);
-        ValueOperations<String, List<BookRecommend>> valueOperations = redisConfig.getRedisTemplate().opsForValue();
-        List<BookDetail> bookDetailList = bookDetailMapper.queryOrderSold();
-        if (!bookDetailList.isEmpty() && bookDetailList.size() > 0){
-            bookDetailList.forEach(bookDetail -> {
-                BookRecommend bookRecommend = setBookRecommend(bookDetail);
-                bookRecommendList.add(bookRecommend);
-            });
-            valueOperations.set("queryOrderSold", bookRecommendList);
-        }
     }
 
     @Override
@@ -277,16 +255,18 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public Mono<ApiResult<ResOrder>> queryById(String orderId) {
+    public Mono<ApiResult<List<ResOrder>>> queryById(String orderId) {
         return Mono.fromSupplier(() -> {
+            List<ResOrder> resOrderList = new ArrayList<>();
             ResOrder resOrder = queryOrder(orderId);
             if (!Objects.isNull(resOrder)){
-                return ApiResult.getApiResult(resOrder);
+                resOrderList.add(resOrder);
+                return ApiResult.getApiResult(resOrderList);
             }
-            return ApiResult.getApiResult(new ResOrder());
+            return ApiResult.getApiResult(resOrderList);
         }).publishOn(Schedulers.elastic()).doOnError(t ->
                 log.error("queryById is error!~~ orderId = {}", orderId, t))
-                .onErrorReturn(ApiResult.getApiResult(new ResOrder()));
+                .onErrorReturn(ApiResult.getApiResult(new ArrayList<>()));
     }
 
     @Override

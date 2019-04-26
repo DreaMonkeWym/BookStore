@@ -83,7 +83,7 @@ public interface OrderService {
      * @param orderId
      * @return
      */
-    Mono<ApiResult<ResOrder>> queryById(String orderId);
+    Mono<ApiResult<List<ResOrder>>> queryById(String orderId);
 
     /**
      * 根据姓名查询订单

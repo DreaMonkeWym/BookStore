@@ -17,7 +17,7 @@ import java.util.List;
  */
 
 @RestController
-@CrossOrigin
+@CrossOrigin(allowCredentials="true", origins = "http://localhost:8080")
 @RequestMapping("/order")
 @Slf4j
 public class OrderController {
@@ -130,8 +130,8 @@ public class OrderController {
      * @param orderId
      * @return
      */
-    @GetMapping("/querybyid")
-    public Mono<ApiResult<ResOrder>> queryById(@RequestParam String orderId){
+    @PostMapping("/querybyid")
+    public Mono<ApiResult<List<ResOrder>>> queryById(@RequestParam String orderId){
         log.info("queryById ~ orderId = {}", orderId);
         return orderService.queryById(orderId);
     }
