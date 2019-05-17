@@ -266,7 +266,7 @@ public class BookServiceImpl implements BookService {
     }
 
     @Override
-    public Mono queryBookDetail(String bookId) {
+    public Mono queryBookDetail(String bookId, String username) {
         return Mono.fromSupplier(() -> {
             RedisConfig redisConfig = new RedisConfig(redisTemplate);
             ValueOperations<String, ResBookDetail> valueOperations = redisConfig.getRedisTemplate().opsForValue();
@@ -278,7 +278,7 @@ public class BookServiceImpl implements BookService {
                     valueOperations.set(bookId, resBookDetail);
                     bookByTypeList(resBookDetail.getTypeId());
                 }
-                setRecentView(resBookDetail.getTypeId());
+                setRecentView(resBookDetail.getTypeId(), username);
                 return ApiResult.getApiResult(resBookDetail);
             }
             Mono<BookDetail> bookDetailMono = selectBookDetail(bookId);
@@ -313,7 +313,7 @@ public class BookServiceImpl implements BookService {
                     }
                     resBookDetail.setCommentList(resCommentList);
                 }
-                setRecentView(tuple.getT1().getTypeid());
+                setRecentView(tuple.getT1().getTypeid(), username);
                 bookByTypeList(tuple.getT1().getTypeid());
                 valueOperations.set(bookId, resBookDetail);
                 return ApiResult.getApiResult(resBookDetail);
@@ -323,23 +323,19 @@ public class BookServiceImpl implements BookService {
         });
     }
 
-    private void setRecentView(String typeId) {
+    private void setRecentView(String typeId, String username) {
         RedisConfig redisConfig = new RedisConfig(redisTemplate);
-        ValueOperations<String, User> userValueOperations = redisConfig.getRedisTemplate().opsForValue();
-        if (redisConfig.getRedisTemplate().hasKey("recentUser")) {
-            ValueOperations<String, String> value = redisConfig.getRedisTemplate().opsForValue();
-            User user = userValueOperations.get("recentUser");
-            String username = recentViewMapper.selectByPrimaryKey(user.getUsername());
-            if (StringUtils.isEmpty(username)) {
-                RecentView recentView = new RecentView();
-                recentView.setUsername(user.getUsername());
-                recentView.setTypeid(typeId);
-                recentViewMapper.insert(recentView);
-                value.set("recentView" + user.getUsername(), typeId);
-            } else {
-                recentViewMapper.updateByPrimaryKey(username, typeId);
-                value.set("recentView" + user.getUsername(), typeId);
-            }
+        ValueOperations<String, String> value = redisConfig.getRedisTemplate().opsForValue();
+        String resusername = recentViewMapper.selectByPrimaryKey(username);
+        if (username != "" && username != null && StringUtils.isEmpty(resusername)) {
+            RecentView recentView = new RecentView();
+            recentView.setUsername(username);
+            recentView.setTypeid(typeId);
+            recentViewMapper.insert(recentView);
+            value.set("recentView" + username, typeId);
+        } else {
+            recentViewMapper.updateByPrimaryKey(username, typeId);
+            value.set("recentView" + username, typeId);
         }
     }
 
@@ -360,12 +356,6 @@ public class BookServiceImpl implements BookService {
     @Override
     public Mono<ApiResult<? extends List<BookByType>>> queryBookByName(String bookName) {
         return Mono.fromSupplier(() -> {
-//            RedisConfig redisConfig = new RedisConfig(redisTemplate);
-//            HashOperations<String, String, BookByType> hashOperations = redisConfig.getRedisTemplate().opsForHash();
-//            if (redisConfig.getRedisTemplate().hasKey(bookName)) {
-//                List<BookByType> bookByTypeList = hashOperations.values(bookName);
-//                return ApiResult.getApiResult(bookByTypeList);
-//            }
             List<BookByType> bookByTypeList = bookByNameList(bookName);
             if (!bookByTypeList.isEmpty()) {
                 return ApiResult.getApiResult(bookByTypeList);
@@ -453,6 +443,7 @@ public class BookServiceImpl implements BookService {
             RedisConfig redisConfig = new RedisConfig(redisTemplate);
             ValueOperations<String, ResBookDetail> bookDetailValueOperations = redisConfig.getRedisTemplate().opsForValue();
             HashOperations<String, String, BookByType> bookByTypeHashOperations = redisConfig.getRedisTemplate().opsForHash();
+            ValueOperations<String, List<BookRecommend>> valueOperations = redisConfig.getRedisTemplate().opsForValue();
             Mono<BookDetail> bookDetailMono = selectBookDetail(bookId);
             return bookDetailMono.flatMap(bookDetail -> {
                 String fileName = staticConfig.getFilePath() + File.separator + bookDetail.getAvatar();
@@ -460,6 +451,8 @@ public class BookServiceImpl implements BookService {
                     commentMapper.deleteByBookId(bookId);
                     bookDetailValueOperations.getOperations().delete(bookId);
                     bookByTypeHashOperations.delete(bookDetail.getTypeid(), bookId);
+                    valueOperations.getOperations().delete("queryOrderSold");
+                    valueOperations.getOperations().delete("queryByFavorNull");
                     return Mono.just(ApiResult.getApiResult(200, "del book successfully"));
                 }
                 return Mono.just(ApiResult.getApiResult(-1, "del book failly"));

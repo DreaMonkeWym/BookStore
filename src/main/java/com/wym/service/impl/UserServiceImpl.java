@@ -63,28 +63,15 @@ public class UserServiceImpl implements UserService {
     @Override
     public Mono getLoginInfo(String username, String password) {
         return Mono.fromSupplier(() -> {
-//            String token = System.currentTimeMillis() + username ; 有些复杂，是否完成待定，现模拟单点登录
+//            String token = System.currentTimeMillis() + username ; 有些复杂，是否完成待定
             RedisConfig redisConfig = new RedisConfig(redisTemplate);
             ValueOperations<String, User> valueOperations = redisConfig.getRedisTemplate().opsForValue();
-            ValueOperations<String, Admin> adminValueOperations = redisConfig.getRedisTemplate().opsForValue();
-            if (redisConfig.getRedisTemplate().hasKey("recentUser")) {
-                User user = valueOperations.get("recentUser");
-                if (username.equals(user.getUsername())) {
-                    return ApiResult.getApiResult(-1, "You are logged in ! ~ ");
-                }
-            } else if (redisConfig.getRedisTemplate().hasKey("recentAdmin")) {
-                Admin admin = adminValueOperations.get("recentAdmin");
-                if (username.equals(admin.getAdminname())) {
-                    return ApiResult.getApiResult(-1, "You are logged in ! ~ ");
-                }
-            }
             ValueOperations<String, Admin> valueOperation = redisConfig.getRedisTemplate().opsForValue();
             if (redisConfig.getRedisTemplate().hasKey("admin" + username)) {
                 if (valueOperation.get("admin" + username).getAdminname().equals(username) &&
                         valueOperation.get("admin" + username).getAdminpassword().equals(MD5Util.encryptMD5(password))) {
                     Admin admin = new Admin();
                     admin.setAdminname(username);
-                    adminValueOperations.set("recentAdmin", admin);
                     ResUser resUser = new ResUser();
                     resUser.setUsername(username);
                     resUser.setIsRoot(true);
@@ -96,7 +83,6 @@ public class UserServiceImpl implements UserService {
                         valueOperations.get("user" + username).getPassword().equals(MD5Util.encryptMD5(password))) {
                     User user = new User();
                     user.setUsername(username);
-                    valueOperations.set("recentUser", user);
                     ResUser resUser = new ResUser();
                     resUser.setUsername(username);
                     resUser.setIsRoot(false);
@@ -111,14 +97,12 @@ public class UserServiceImpl implements UserService {
                     valueOperation.set("admin" + username, tuple.getT1());
                     Admin admin = new Admin();
                     admin.setAdminname(username);
-                    adminValueOperations.set("recentAdmin", admin);
                     ResUser resUser = new ResUser();
                     resUser.setUsername(username);
                     resUser.setIsRoot(true);
                     return ApiResult.getApiResult("admin login success", resUser);
                 } else if (!StringUtils.isEmpty(tuple.getT2().getPassword()) && tuple.getT2().getPassword().equals(MD5Util.encryptMD5(password))){
                     valueOperations.set("user" + username, tuple.getT2());
-                    valueOperations.set("recentUser", tuple.getT2());
                     ResUser resUser = new ResUser();
                     resUser.setUsername(username);
                     resUser.setIsRoot(false);
@@ -172,19 +156,8 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public Mono<ApiResult<Object>> getLogoutInfo() {
-        return Mono.fromSupplier(() -> {
-            RedisConfig redisConfig = new RedisConfig(redisTemplate);
-            ValueOperations<String, User> valueOperations = redisConfig.getRedisTemplate().opsForValue();
-            ValueOperations<String, Admin> valueOperation= redisConfig.getRedisTemplate().opsForValue();
-            if (redisConfig.getRedisTemplate().hasKey("recentUser")) {
-                valueOperations.getOperations().delete("recentUser");
-                return  ApiResult.getApiResult(200, "user logout successfully");
-            } else if (redisConfig.getRedisTemplate().hasKey("recentAdmin")) {
-                valueOperation.getOperations().delete("recentAdmin");
-                return  ApiResult.getApiResult(200, "admin logout successfully");
-            }
-            return  ApiResult.getApiResult(-1, "logout fail");
-        }).publishOn(Schedulers.elastic()).doOnError(t ->
+        return Mono.fromSupplier(() -> ApiResult.getApiResult(200, "logout successfully")
+        ).publishOn(Schedulers.elastic()).doOnError(t ->
                 log.error("getLogoutInfo error!~~ ", t))
                 .onErrorReturn(ApiResult.getApiResult(-1, "logout fail"));
     }

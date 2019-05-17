@@ -82,9 +82,9 @@ public class BookController {
      * @return
      */
     @PostMapping("/querybookdetail")
-    public Mono<ApiResult<ResBookDetail>> queryBookDetail(@RequestParam String bookId){
-        log.info("queryBookDetail ~~ bookId = {}", bookId);
-        return bookService.queryBookDetail(bookId);
+    public Mono<ApiResult<ResBookDetail>> queryBookDetail(@RequestParam String bookId, @RequestParam(required = false) String username){
+        log.info("queryBookDetail ~~ bookId = {}, username = {}", bookId, username);
+        return bookService.queryBookDetail(bookId, username);
     }
 
     /**

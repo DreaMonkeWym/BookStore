@@ -42,7 +42,7 @@ public class OrderController {
      * @param username
      * @return
      */
-    @GetMapping("/querycart")
+    @PostMapping("/querycart")
     public Mono<ApiResult<? extends List<CartDetail>>> queryCart(@RequestParam String username){
         log.info("queryCart ~ username = {}", username);
         return orderService.queryCart(username);
@@ -83,13 +83,13 @@ public class OrderController {
 
     /**
      * 更改购物车商品数量List
-     * @param cartDetailList
+     * @param
      * @return
      */
     @PutMapping("/updatecartlist")
-    public Mono<ApiResult<Object>> updateCartList(@RequestBody List<CartDetail> cartDetailList, @RequestParam String username) {
-        log.info("updateCartList ~cartDetailList = {}, username = {}", cartDetailList, username);
-        return orderService.updateCartList(cartDetailList, username);
+    public Mono<ApiResult<Object>> updateCartList(@RequestBody CommitCart commitCart) {
+        log.info("updateCartList ~cartDetailList = {}, username = {}", commitCart.getCartDetailList(), commitCart.getUsername());
+        return orderService.updateCartList(commitCart.getCartDetailList(), commitCart.getUsername());
     }
 
     /**

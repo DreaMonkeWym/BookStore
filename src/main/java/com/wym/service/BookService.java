@@ -21,7 +21,7 @@ public interface BookService {
      * @param bookId
      * @return
      */
-    Mono<ApiResult<ResBookDetail>> queryBookDetail(String bookId);
+    Mono<ApiResult<ResBookDetail>> queryBookDetail(String bookId, String username);
 
     /**
      *  添加书籍
