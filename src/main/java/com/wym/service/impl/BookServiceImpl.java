@@ -324,7 +324,7 @@ public class BookServiceImpl implements BookService {
     private void setRecentView(String typeId, String username) {
         RedisConfig redisConfig = new RedisConfig(redisTemplate);
         ValueOperations<String, String> value = redisConfig.getRedisTemplate().opsForValue();
-        if (username != "" && username != null) {
+        if (!"".equals(username) && username != null) {
             value.set("recentView" + username, typeId);
         }
     }
@@ -406,8 +406,8 @@ public class BookServiceImpl implements BookService {
                 }
                 List<BookDetail> bookDetailList = bookDetailMapper.queryBookByType(typeId);
                 if (!bookDetailList.isEmpty() && bookDetailList.size() > 0){
-                    if (bookDetailList.size() > 10){
-                        bookDetailList = bookDetailList.subList(0, 10);
+                    if (bookDetailList.size() > 8){
+                        bookDetailList = bookDetailList.subList(0, 8);
                     }
                     List<BookRecommend> bookRecommendList = new ArrayList<>();
                     bookDetailList.forEach(bookDetail -> {
