@@ -34,5 +34,5 @@ public interface UserService {
       * 用户注销
       * @return
       */
-     Mono<ApiResult<Object>> getLogoutInfo();
+     Mono<ApiResult<Object>> getLogoutInfo(String username);
 }

@@ -1,8 +1,10 @@
 package com.wym.service.impl;
 
 import com.wym.mapper.AdminMapper;
+import com.wym.mapper.RecentViewMapper;
 import com.wym.mapper.UserMapper;
 import com.wym.model.Admin;
+import com.wym.model.RecentView;
 import com.wym.model.User;
 import com.wym.model.po.ResUser;
 import com.wym.service.UserService;
@@ -39,6 +41,8 @@ public class UserServiceImpl implements UserService {
     private StaticConfig staticConfig;
     @Resource
     private RedisTemplate redisTemplate;
+    @Resource
+    private RecentViewMapper recentViewMapper;
 
     private Mono<Admin> selectAdminLogin(String adminname) {
         return Mono.fromSupplier(() -> {
@@ -155,9 +159,28 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public Mono<ApiResult<Object>> getLogoutInfo() {
-        return Mono.fromSupplier(() -> ApiResult.getApiResult(200, "logout successfully")
-        ).publishOn(Schedulers.elastic()).doOnError(t ->
+    public Mono<ApiResult<Object>> getLogoutInfo(String username) {
+        return Mono.fromSupplier(() -> {
+            RedisConfig redisConfig = new RedisConfig(redisTemplate);
+            ValueOperations<String, String> value = redisConfig.getRedisTemplate().opsForValue();
+            if(redisConfig.getRedisTemplate().hasKey("recentView" + username)) {
+                String resusername = recentViewMapper.selectByPrimaryKey(username);
+                String typeId = value.get("recentView" + username);
+                if(StringUtils.isEmpty(resusername)) {
+                    RecentView recentView = new RecentView();
+                    recentView.setUsername(username);
+                    recentView.setTypeid(typeId);
+                    if(recentViewMapper.insert(recentView) > 0) {
+                        return ApiResult.getApiResult(200, "logout successfully");
+                    };
+                } else {
+                    if(recentViewMapper.updateByPrimaryKey(username, typeId) > 0) {
+                        return ApiResult.getApiResult(200, "logout successfully");
+                    };
+                }
+            }
+            return ApiResult.getApiResult(200, "logout successfully");
+        }).publishOn(Schedulers.elastic()).doOnError(t ->
                 log.error("getLogoutInfo error!~~ ", t))
                 .onErrorReturn(ApiResult.getApiResult(-1, "logout fail"));
     }

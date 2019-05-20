@@ -43,8 +43,6 @@ public class BookServiceImpl implements BookService {
     @Resource
     private UserMapper userMapper;
     @Resource
-    private RecentViewMapper recentViewMapper;
-    @Resource
     private RedisTemplate redisTemplate;
 
     private Mono<BookDetail> selectBookDetail(String bookId){
@@ -326,28 +324,17 @@ public class BookServiceImpl implements BookService {
     private void setRecentView(String typeId, String username) {
         RedisConfig redisConfig = new RedisConfig(redisTemplate);
         ValueOperations<String, String> value = redisConfig.getRedisTemplate().opsForValue();
-        String resusername = recentViewMapper.selectByPrimaryKey(username);
-        if (username != "" && username != null && StringUtils.isEmpty(resusername)) {
-            RecentView recentView = new RecentView();
-            recentView.setUsername(username);
-            recentView.setTypeid(typeId);
-            recentViewMapper.insert(recentView);
-            value.set("recentView" + username, typeId);
-        } else {
-            recentViewMapper.updateByPrimaryKey(username, typeId);
+        if (username != "" && username != null) {
             value.set("recentView" + username, typeId);
         }
     }
 
     private List<BookByType> bookByNameList(String bookName) {
-//        RedisConfig redisConfig = new RedisConfig(redisTemplate);
-//        HashOperations<String, String, BookByType> hashOperations = redisConfig.getRedisTemplate().opsForHash();
         List<BookDetail> bookDetailList = bookDetailMapper.queryBookByName(bookName);
         List<BookByType> bookByTypeList = new ArrayList<>();
         if (!bookDetailList.isEmpty() && bookDetailList.size() > 0) {
             bookDetailList.forEach(bookDetail -> {
                 BookByType bookByType = setBookBytype(bookDetail);
-//                hashOperations.put(bookName, bookDetail.getBookid(), bookByType);
                 bookByTypeList.add(bookByType);
             });
         }

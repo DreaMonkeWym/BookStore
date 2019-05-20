@@ -53,8 +53,8 @@ public class UserController {
      * @return
      */
     @PostMapping("/logout")
-    public Mono<ApiResult<Object>> getLogoutInfo() {
-        log.info("getLogoutInfo ~");
-        return userService.getLogoutInfo();
+    public Mono<ApiResult<Object>> getLogoutInfo(@RequestParam String username) {
+        log.info("getLogoutInfo ~ username = {}", username);
+        return userService.getLogoutInfo(username);
     }
 }
