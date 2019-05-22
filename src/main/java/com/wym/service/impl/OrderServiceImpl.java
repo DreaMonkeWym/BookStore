@@ -70,8 +70,11 @@ public class OrderServiceImpl implements OrderService {
                         return Mono.just(ApiResult.getApiResult(200, "Book add cart successfully "));
                     }
                 }else {
+                    BookDetail bookDetail = bookDetailMapper.selectByPrimaryKey(bookId);
                     String quantity = new BigInteger(carts.getQuantity()).add(new BigInteger("1")).toString();
-                    // 是否超过图书总数 待实现
+                    if (Long.parseLong(quantity) > Long.parseLong(bookDetail.getQuantity())) {
+                        return Mono.just(ApiResult.getApiResult(-1, "库存不足 !"));
+                    }
                     if (cartMapper.updateQuantity(carts.getCartid(), quantity) > 0){
                         CartDetail updatecart = hashOperations.get("queryCart" + username, carts.getCartid());
                         updatecart.setBookQuantity(quantity);

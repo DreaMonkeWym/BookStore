@@ -44,6 +44,8 @@ public class BookServiceImpl implements BookService {
     private UserMapper userMapper;
     @Resource
     private RedisTemplate redisTemplate;
+    @Resource
+    private RecentViewMapper recentViewMapper;
 
     private Mono<BookDetail> selectBookDetail(String bookId){
         return Mono.fromSupplier(() -> {
@@ -358,18 +360,16 @@ public class BookServiceImpl implements BookService {
         return Mono.fromSupplier(() -> {
             RedisConfig redisConfig = new RedisConfig(redisTemplate);
             ValueOperations<String, List<BookRecommend>> valueOperations = redisConfig.getRedisTemplate().opsForValue();
-            ValueOperations<String, User> userValueOperations = redisConfig.getRedisTemplate().opsForValue();
             HashOperations<String, String, BookByType> hashOperations = redisConfig.getRedisTemplate().opsForHash();
             if (username == null || "".equals(username)){
                 if (redisConfig.getRedisTemplate().hasKey("queryByFavorNull")) {
                     List<BookRecommend> bookRecommendList = valueOperations.get("queryByFavorNull");
-                    userValueOperations.getOperations().delete("recentUser");
                     return ApiResult.getApiResult(bookRecommendList);
                 }
                 List<BookDetail> bookDetailList = bookDetailMapper.queryBookByType(staticConfig.getTypeId());
                 if (!bookDetailList.isEmpty() && bookDetailList.size() > 0){
-                    if (bookDetailList.size() > 10){
-                        bookDetailList = bookDetailList.subList(0, 10);
+                    if (bookDetailList.size() > 8){
+                        bookDetailList = bookDetailList.subList(0, 8);
                     }
                     List<BookRecommend> bookRecommendList = new ArrayList<>();
                     bookDetailList.forEach(bookDetail -> {
@@ -387,7 +387,14 @@ public class BookServiceImpl implements BookService {
                     ValueOperations<String, String> value = redisConfig.getRedisTemplate().opsForValue();
                     typeId = value.get("recentView" + user.getUsername());
                 } else {
-                    typeId = bookTypeMapper.selectByPrimaryName(user.getFavor()).getTypeid();
+                    RecentView recentView = recentViewMapper.selectRecentView(username);
+                    if (recentViewMapper.selectByPrimaryKey(username) != null) {
+                        typeId = recentView.getTypeid();
+                        ValueOperations<String, String> value = redisConfig.getRedisTemplate().opsForValue();
+                        value.set("recentView" + user.getUsername(), typeId);
+                    } else {
+                        typeId = bookTypeMapper.selectByPrimaryName(user.getFavor()).getTypeid();
+                    }
                 }
                 if (redisConfig.getRedisTemplate().hasKey(typeId)) {
                     List<BookByType> bookByTypeList = hashOperations.values(typeId);
